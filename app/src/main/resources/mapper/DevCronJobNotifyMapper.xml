@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kanseiu.devops.mapper.DevCronJobNotifyMapper">
+
+    <select id="listByJobId" resultType="com.kanseiu.devops.model.entity.DevCronJobNotify">
+        SELECT
+            m.*,
+            f.USERNAME,
+            f.NOTIFY_TYPE,
+            f.NOTIFY_TYPE_CONTENT,
+            f.DESC_TEXT
+        FROM
+            DEV_CRON_JOB t
+        JOIN
+            DEV_CRON_JOB_NOTIFY m ON m.DEV_CRON_JOB_ID = t.ID
+        JOIN
+            DEV_NOTIFY_TARGET f ON f.ID = m.DEV_NOTIFY_TARGET_ID
+        WHERE
+            t.ID = #{jobId}
+    </select>
+
+    <select id="couldSelectNotifyTarget" resultType="com.kanseiu.devops.model.entity.DevNotifyTarget">
+        SELECT
+            t.*
+        FROM
+            DEV_NOTIFY_TARGET t
+        LEFT JOIN
+            DEV_CRON_JOB_NOTIFY m ON t.ID = m.DEV_NOTIFY_TARGET_ID AND m.DEV_CRON_JOB_ID = #{jobId}
+        WHERE
+            t.DISABLED = 0
+        AND
+            t.VERIFIED = 1
+        AND
+            m.ID IS NULL
+    </select>
+
+</mapper>

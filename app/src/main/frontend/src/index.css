@@ -1,0 +1,7 @@
+/* 中文注释：Tailwind 基础样式 */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 中文注释：可选的全局微调 */
+html, body, #root { height: 100%; }

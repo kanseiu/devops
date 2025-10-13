@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kanseiu.devops.mapper.DevCronJobLogMapper">
+
+    <select id="getFailLogByTime" resultType="com.kanseiu.devops.model.response.DevCronJobLogResp">
+        SELECT
+            t.ID,
+            t.JOB_ID,
+            m.JOB_NAME,
+            t.CREATE_TIME,
+            t.START_TIME,
+            t.END_TIME,
+            t.DURATION_MS,
+            t.EXIT_CODE,
+            t.STATUS
+        FROM
+            DEV_CRON_JOB_LOG t
+        LEFT JOIN
+            DEV_CRON_JOB m ON t.JOB_ID = m.ID
+        WHERE
+            t.EXIT_CODE != 0
+            <if test="start != null">
+            AND
+                t.CREATE_TIME >= #{start}
+            </if>
+            <if test="end != null">
+            AND
+                t.CREATE_TIME &lt;= #{end}
+            </if>
+        ORDER BY
+            t.CREATE_TIME DESC
+    </select>
+
+</mapper>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--日志格式应用spring boot默认的格式 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="LOG_PATTERN_STDOUT" value="%clr([%d{${LOG_DATEFORMAT_PATTERN:-yyyy-MM-dd HH:mm:ss.SSS}}]){faint} %clr(${LOG_LEVEL_PATTERN:-%5p}) %clr(${PID:- }){magenta} %clr(---){faint} %clr([%15.15t]){faint} %clr([%X{X-Trace-Id}]){yellow} %clr(%-40.40logger{39}){cyan} %clr(:){faint} %m%n${LOG_EXCEPTION_CONVERSION_WORD:-%wEx}"/>
+
+    <springProfile name="dev,prod">
+        <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder>
+                <pattern>${LOG_PATTERN_STDOUT}</pattern>
+                <charset>utf-8</charset>
+            </encoder>
+        </appender>
+
+        <!-- 默认所有的包以info -->
+        <root level="info">
+            <appender-ref ref="STDOUT"/>
+        </root>
+
+        <!-- mapper包输出SQL -->
+        <logger name="com.kanseiu.devops.mapper" level="DEBUG"/>
+    </springProfile>
+</configuration>

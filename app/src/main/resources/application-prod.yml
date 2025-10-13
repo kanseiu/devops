@@ -1,0 +1,19 @@
+spring:
+  web:
+    resources:
+      static-locations: classpath:/static/
+  mail:
+    host: smtp.qq.com
+    port: 465
+    username:
+    password:
+    default-encoding: UTF-8
+    properties:
+      mail.smtp.auth: true
+      mail.smtp.ssl.enable: true
+      mail.smtp.starttls.enable: true
+      mail.smtp.starttls.required: true
+      mail.smtp.socketFactory.class: javax.net.ssl.SSLSocketFactory
+      mail.smtp.connectiontimeout: 8000
+      mail.smtp.timeout: 10000
+      mail.smtp.writetimeout: 10000
