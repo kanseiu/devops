@@ -20,4 +20,6 @@
 
     可在 SecurityConfig 中修改默认密码
 
-    
+## 打包
+
+    mvn clean package 打成 jar 包，随便找个自己能用的服务器部署即可
