@@ -8,7 +8,7 @@
 
 ## 启动方式
 
-    前端：在 app/src/main/frontend 打开终端，执行 npm run watch
+    前端：在 app/src/main/frontend 打开终端，第一次启动前，执行 npm install，后续执行 npm run watch
 
     后端：Springboot启动
 
