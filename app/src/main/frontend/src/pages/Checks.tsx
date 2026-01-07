@@ -314,7 +314,7 @@ export default function HutoolCronJobs() {
 
     // ========= UI =========
     return (
-        <div className="app-shell flex flex-col h-screen">
+        <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* 顶部导航 */}
             <AppHeader title="定时任务维护" />
 

@@ -174,7 +174,7 @@ export default function NotifyTargets() {
     );
 
     return (
-        <div className="app-shell flex flex-col h-screen">
+        <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* 顶部导航（统一样式） */}
             <AppHeader title="通知方式管理" />
 

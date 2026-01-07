@@ -158,7 +158,7 @@ export default function Home() {
 
     return (
         // 中文注释：使用 flex 布局撑满视口，高度固定为 100vh；header/footer 固定可见，main 中间区域滚动
-        <div className="app-shell flex flex-col h-screen">
+        <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* 顶部导航（固定高度，始终可见） */}
             <AppHeader title="运维管理平台" />
 
@@ -223,56 +223,58 @@ export default function Home() {
                             <div className="col-span-2">状态 / 操作</div>
                         </div>
 
-                        {/* 数据区（白底，内部按行分割） */}
-                        <div className="divide-y divide-gray-200 bg-white rounded-2xl border border-gray-200">
-                            {loadingFail && (
-                                <div className="px-3 py-3 text-sm text-gray-500">加载中...</div>
-                            )}
-                            {!loadingFail && failList.length === 0 && (
-                                <div className="px-3 py-3 text-sm text-gray-500">今日暂无失败任务</div>
-                            )}
-                            {failList.map(row => (
-                                <div key={row.id} className="px-3 py-3 md:grid md:grid-cols-12 md:gap-3 text-sm">
-                                    {/* 左侧：ID */}
-                                    <div className="md:col-span-2">
-                                        <div className="font-mono text-xs text-gray-700">#{row.id}</div>
-                                        <div className="text-xs text-gray-500">jobId: {row.jobId}</div>
-                                    </div>
+                        {/* 数据区（白底，内部按行分割，独立滚动） */}
+                        <div className="bg-white rounded-2xl border border-gray-200">
+                            <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-200">
+                                {loadingFail && (
+                                    <div className="px-3 py-3 text-sm text-gray-500">加载中...</div>
+                                )}
+                                {!loadingFail && failList.length === 0 && (
+                                    <div className="px-3 py-3 text-sm text-gray-500">今日暂无失败任务</div>
+                                )}
+                                {failList.map(row => (
+                                    <div key={row.id} className="px-3 py-3 md:grid md:grid-cols-12 md:gap-3 text-sm">
+                                        {/* 左侧：ID */}
+                                        <div className="md:col-span-2">
+                                            <div className="font-mono text-xs text-gray-700">#{row.id}</div>
+                                            <div className="text-xs text-gray-500">jobId: {row.jobId}</div>
+                                        </div>
 
-                                    {/* 名称 */}
-                                    <div className="md:col-span-3">
-                                        <div className="font-medium text-gray-800 line-clamp-1">{row.jobName}</div>
-                                        <div className="mt-1 md:hidden text-xs text-gray-500">
-                                            {fmtTime(row.startTime)} ~ {fmtTime(row.endTime)}
+                                        {/* 名称 */}
+                                        <div className="md:col-span-3">
+                                            <div className="font-medium text-gray-800 line-clamp-1">{row.jobName}</div>
+                                            <div className="mt-1 md:hidden text-xs text-gray-500">
+                                                {fmtTime(row.startTime)} ~ {fmtTime(row.endTime)}
+                                            </div>
+                                        </div>
+
+                                        {/* 时间段（桌面端显示） */}
+                                        <div className="hidden md:block md:col-span-3 text-gray-600">
+                                            <div className="text-xs">{fmtTime(row.startTime)} ~ {fmtTime(row.endTime)}</div>
+                                        </div>
+
+                                        {/* 耗时/退出码 */}
+                                        <div className="md:col-span-2 text-gray-600">
+                                            <div className="text-xs">耗时：{fmtDur(row.durationMs)}</div>
+                                            <div className="text-xs">退出码：{row.exitCode ?? '—'}</div>
+                                        </div>
+
+                                        {/* 状态 + 操作 */}
+                                        <div
+                                            className="md:col-span-2 flex items-center gap-2 justify-between md:justify-start mt-2 md:mt-0">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(row.status)}`}>
+                          {row.status}
+                        </span>
+                                            <button
+                                                onClick={() => openDetail(row.id)}
+                                                className="px-2.5 py-1.5 rounded-lg text-xs text-white bg-slate-600 hover:bg-slate-700"
+                                            >
+                                                详情
+                                            </button>
                                         </div>
                                     </div>
-
-                                    {/* 时间段（桌面端显示） */}
-                                    <div className="hidden md:block md:col-span-3 text-gray-600">
-                                        <div className="text-xs">{fmtTime(row.startTime)} ~ {fmtTime(row.endTime)}</div>
-                                    </div>
-
-                                    {/* 耗时/退出码 */}
-                                    <div className="md:col-span-2 text-gray-600">
-                                        <div className="text-xs">耗时：{fmtDur(row.durationMs)}</div>
-                                        <div className="text-xs">退出码：{row.exitCode ?? '—'}</div>
-                                    </div>
-
-                                    {/* 状态 + 操作 */}
-                                    <div
-                                        className="md:col-span-2 flex items-center gap-2 justify-between md:justify-start mt-2 md:mt-0">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(row.status)}`}>
-                      {row.status}
-                    </span>
-                                        <button
-                                            onClick={() => openDetail(row.id)}
-                                            className="px-2.5 py-1.5 rounded-lg text-xs text-white bg-slate-600 hover:bg-slate-700"
-                                        >
-                                            详情
-                                        </button>
-                                    </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </section>
                 </div>

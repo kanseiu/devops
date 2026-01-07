@@ -192,7 +192,7 @@ export default function Servers() {
     }, [visible]);
 
     return (
-        <div className="app-shell flex flex-col h-screen">
+        <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* 顶部导航：与首页一致 */}
             <AppHeader title="服务器管理" />
 

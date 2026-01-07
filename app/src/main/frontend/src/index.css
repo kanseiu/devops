@@ -29,6 +29,28 @@ html, body, #root { height: 100%; }
   color: #0f172a;
 }
 
+/* 中文注释：主体两侧淡出（非登录页使用） */
+.app-shell--fade {
+  position: relative;
+}
+.app-shell--fade::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: 5;
+  background: linear-gradient(90deg, rgba(245, 247, 251, 0.9) 0%, rgba(245, 247, 251, 0) 12%, rgba(245, 247, 251, 0) 88%, rgba(245, 247, 251, 0.9) 100%);
+}
+
+@media (max-width: 768px) {
+  .app-shell--fade::before {
+    background: linear-gradient(90deg, rgba(245, 247, 251, 0.6) 0%, rgba(245, 247, 251, 0) 8%, rgba(245, 247, 251, 0) 92%, rgba(245, 247, 251, 0.6) 100%);
+  }
+}
+
 /* 中文注释：统一深色面板风格 */
 .app-shell header,
 .app-shell footer {

@@ -177,7 +177,7 @@ export default function Databases() {
 
     // ================= UI =================
     return (
-        <div className="app-shell flex flex-col h-screen">
+        <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* header */}
             <AppHeader title="数据库管理" />
 

@@ -144,7 +144,7 @@ export default function DevScripts() {
     }, [visible]);
 
     return (
-        <div className="app-shell flex flex-col h-screen">
+        <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* 顶部导航 */}
             <AppHeader title="脚本管理" />
 
