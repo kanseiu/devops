@@ -3,10 +3,13 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 import { router } from './router';
+import { ConfirmProvider } from '@/components/ConfirmDialog';
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>
-        <RouterProvider router={router} />
+        <ConfirmProvider>
+            <RouterProvider router={router} />
+        </ConfirmProvider>
     </React.StrictMode>
 );

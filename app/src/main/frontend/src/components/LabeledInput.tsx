@@ -10,7 +10,7 @@ export default function LabeledInput(props: {
 
     return (
         <label style={{ display: 'block', minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{label}</div>
             <input
                 type={type}
                 value={value ?? ''}
@@ -25,10 +25,12 @@ export default function LabeledInput(props: {
                     maxWidth: '100%',
 
                     padding: '8px 10px',
-                    border: '1px solid #dcdfe6',
+                    border: '1px solid #cbd5e1',
                     borderRadius: 6,
-                    background: disabled ? '#f5f5f5' : '#fff',
-                    color: disabled ? '#999' : 'inherit',
+                    background: disabled ? '#e2e8f0' : '#ffffff',
+                    color: disabled ? '#94a3b8' : '#0f172a',
+                    outline: 'none',
+                    boxShadow: '0 0 0 1px rgba(56, 189, 248, 0)',
                 }}
             />
         </label>

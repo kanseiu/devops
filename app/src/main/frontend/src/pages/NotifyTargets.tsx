@@ -6,7 +6,9 @@ import {useEffect, useMemo, useState} from 'react';
 import {api} from '@/utils/api';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
-import AppNav from '@/components/AppNav';
+import AppHeader from '@/components/AppHeader';
+import AppFooter from '@/components/AppFooter';
+import {useConfirm} from '@/components/ConfirmDialog';
 
 type NotifyTarget = {
     id?: number;
@@ -45,6 +47,7 @@ export default function NotifyTargets() {
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<NotifyTarget>(emptyForm);
     const isEdit = useMemo(() => form.id != null, [form.id]);
+    const confirm = useConfirm();
 
     // 中文注释：加载列表
     const load = async () => {
@@ -130,9 +133,21 @@ export default function NotifyTargets() {
 
     const remove = async (row: NotifyTarget) => {
         if (!row?.id) return;
-        const first = window.confirm(`确认删除通知对象 #${row.id} ${row.name}？`);
+        const first = await confirm({
+            title: '确认删除',
+            message: `确认删除通知对象 #${row.id} ${row.name}？`,
+            confirmText: '继续',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!first) return;
-        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        const second = await confirm({
+            title: '二次确认',
+            message: '此操作不可恢复，是否继续删除？',
+            confirmText: '删除',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!second) return;
         await api.post(`/api/notifyTarget/delete/${row.id}`, {});
         await load();
@@ -159,14 +174,9 @@ export default function NotifyTargets() {
     );
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
+        <div className="app-shell flex flex-col h-screen">
             {/* 顶部导航（统一样式） */}
-            <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
-                <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <h1 className="text-xl font-bold">通知方式管理</h1>
-                    <AppNav />
-                </div>
-            </header>
+            <AppHeader title="通知方式管理" />
 
             {/* 主体：行列表（非卡片） */}
             <main className="flex-1 overflow-y-auto">
@@ -178,67 +188,56 @@ export default function NotifyTargets() {
                         </div>
                         <div className="flex gap-2">
                             <button
-                                onClick={openCreate}
-                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
-                            >
-                                新增
-                            </button>
-                            <button
                                 onClick={load}
                                 className="px-3.5 py-2 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50"
                             >
                                 刷新
                             </button>
+                            <button
+                                onClick={openCreate}
+                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                            >
+                                新建
+                            </button>
                         </div>
                     </div>
 
-                    {/* 表头 */}
-                    <div className="hidden md:grid md:grid-cols-12 text-xs text-gray-500 px-2 py-2">
-                        <div className="col-span-2 text-left">名称 / 用户名</div>
-                        <div className="col-span-3 text-left">通知方式 / 内容</div>
-                        <div className="col-span-3 text-left">备注</div>
-                        <div className="col-span-2 text-center">状态</div>
-                        <div className="col-span-2 text-center">操作</div>
-                    </div>
-
-                    {/* 列表区：白底 + 分割线 */}
-                    <div className="bg-white rounded-2xl border border-gray-200 divide-y divide-gray-200">
-                        {loading && <div className="px-3 py-3 text-sm text-gray-500">加载中...</div>}
-                        {!loading && list.length === 0 && (
-                            <div className="px-3 py-3 text-sm text-gray-500">暂无数据</div>
-                        )}
+                    {/* 列表区：卡片样式 */}
+                    {loading && <div className="text-sm text-gray-500">加载中...</div>}
+                    {!loading && list.length === 0 && (
+                        <div className="bg-white rounded-2xl shadow-card p-8 text-center text-gray-500">暂无数据</div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {list.map(row => (
                             <div
                                 key={row.id}
-                                className="px-3 py-3 md:grid md:grid-cols-12 md:gap-3 text-sm items-center"
+                                className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition"
                             >
-                                {/* 名称/用户名（值保持不变） */}
-                                <div className="md:col-span-2">
-                                    <div className="font-medium text-gray-800 line-clamp-1">
+                                {/* 标题 */}
+                                <div className="flex items-center justify-between mb-2">
+                                    <div className="font-semibold text-gray-800">
                                         #{row.id} {row.name}
                                     </div>
-                                    <div className="text-xs text-gray-500">user: {row.username}</div>
+                                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
+                                        {row.notifyType || '—'}
+                                    </span>
                                 </div>
 
-                                {/* 通知方式/内容（值保持不变） */}
-                                <div className="md:col-span-3">
-                                    <div className="flex items-center gap-2">
-          <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
-            {row.notifyType || '—'}
-          </span>
-                                    </div>
-                                    <div className="mt-1 text-xs text-gray-600 break-all">
-                                        {row.notifyTypeContent}
-                                    </div>
+                                {/* 用户与内容 */}
+                                <div className="text-xs text-gray-500 mb-2">
+                                    user: {row.username}
+                                </div>
+                                <div className="text-xs text-gray-600 break-all mb-2">
+                                    {row.notifyTypeContent}
                                 </div>
 
-                                {/* 备注：单行 + 超出省略号 */}
-                                <div className="md:col-span-3 text-xs text-gray-600 flex items-center">
-                                    <div className="truncate w-full">{row.descText || '—'}</div>
+                                {/* 备注 */}
+                                <div className="text-xs text-gray-600 mb-3 truncate">
+                                    {row.descText || '—'}
                                 </div>
 
-                                {/* 状态：水平+垂直居中 */}
-                                <div className="md:col-span-2 flex items-center justify-center gap-2">
+                                {/* 状态 */}
+                                <div className="flex items-center gap-2 mb-3">
                                     {badge(
                                         !row.disabled,
                                         '启用',
@@ -255,20 +254,22 @@ export default function NotifyTargets() {
                                     )}
                                 </div>
 
-                                {/* 操作：水平+垂直居中 */}
-                                <div className="md:col-span-2 flex items-center justify-center gap-2">
-                                    <button
-                                        onClick={() => openEdit(row)}
-                                        className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
-                                    >
-                                        编辑
-                                    </button>
+                                {/* 操作 */}
+                                <div className="flex items-center justify-between gap-2">
                                     <button
                                         onClick={() => remove(row)}
-                                        className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50"
+                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
                                     >
                                         删除
                                     </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => openEdit(row)}
+                                            className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
+                                        >
+                                            编辑
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -278,17 +279,7 @@ export default function NotifyTargets() {
             </main>
 
             {/* 底部页脚（统一） */}
-            <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
-                <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
-                    <span>v1.0 · 内部工具</span>
-                    <AppNav
-                        className="text-xs text-gray-500"
-                        linkClassName="hover:text-gray-800"
-                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
-                        separatorClassName="mx-3 text-gray-300"
-                    />
-                </div>
-            </footer>
+            <AppFooter />
 
             {/* 弹窗 */}
             {visible && (
@@ -296,7 +287,7 @@ export default function NotifyTargets() {
                     <div className="w-[760px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
                         {/* 标题 */}
                         <div className="flex items-center justify-between mb-3">
-                            <div className="font-semibold">{isEdit ? '编辑通知对象' : '新增通知对象'}</div>
+                            <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
                             <button
                                 onClick={() => setVisible(false)}
                                 className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"

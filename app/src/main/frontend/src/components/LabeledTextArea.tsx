@@ -9,7 +9,7 @@ export default function LabeledTextArea(props: {
 
     return (
         <label style={{ display: 'block', minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{label}</div>
+            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{label}</div>
             <textarea
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
@@ -22,9 +22,12 @@ export default function LabeledTextArea(props: {
                     maxWidth: '100%',
 
                     padding: '8px 10px',
-                    border: '1px solid #dcdfe6',
+                    border: '1px solid #cbd5e1',
                     borderRadius: 6,
                     resize: 'vertical',
+                    background: '#ffffff',
+                    color: '#0f172a',
+                    outline: 'none',
                 }}
             />
         </label>

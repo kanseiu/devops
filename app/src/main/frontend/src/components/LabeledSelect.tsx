@@ -22,11 +22,11 @@ export default function LabeledSelect({
                                       }: Props) {
     return (
         <label className="block min-w-0">
-            <div className="text-sm text-gray-600 mb-1">{label}</div>
+            <div className="text-sm text-slate-500 mb-1">{label}</div>
             <select
                 className={`w-full px-3 py-2 border rounded-lg text-sm
-                    ${disabled ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-white'}
-                    focus:outline-none focus:ring-1 focus:ring-blue-500`}
+                    ${disabled ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'bg-white text-slate-900'}
+                    border-slate-300 focus:outline-none focus:ring-1 focus:ring-cyan-500/50`}
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 disabled={disabled}

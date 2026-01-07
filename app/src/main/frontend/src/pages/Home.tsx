@@ -3,7 +3,8 @@ import {Link} from 'react-router-dom';
 import {Server, FileCode, CalendarCheck, Database, Bell} from 'lucide-react';
 import {useEffect, useState} from 'react';
 import {api} from '@/utils/api';
-import AppNav from '@/components/AppNav';
+import AppHeader from '@/components/AppHeader';
+import AppFooter from '@/components/AppFooter';
 
 // ===== 类型定义 =====
 type Stat = { servers: number; scripts: number; jobs: number; databases: number; notifyTargets: number; };
@@ -157,14 +158,9 @@ export default function Home() {
 
     return (
         // 中文注释：使用 flex 布局撑满视口，高度固定为 100vh；header/footer 固定可见，main 中间区域滚动
-        <div className="flex flex-col h-screen bg-gray-50">
+        <div className="app-shell flex flex-col h-screen">
             {/* 顶部导航（固定高度，始终可见） */}
-            <header className="shrink-0 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
-                <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <h1 className="text-xl font-bold">运维管理平台</h1>
-                    <AppNav />
-                </div>
-            </header>
+            <AppHeader title="运维管理平台" />
 
             {/* 中间主内容区域：flex-1 + overflow-y-auto，只有这里滚动 */}
             <main className="flex-1 overflow-y-auto">
@@ -283,17 +279,7 @@ export default function Home() {
             </main>
 
             {/* 底部页脚（固定高度，始终可见） */}
-            <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
-                <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
-                    <span>v1.0 · 内部工具</span>
-                    <AppNav
-                        className="text-xs text-gray-500"
-                        linkClassName="hover:text-gray-800"
-                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
-                        separatorClassName="mx-3 text-gray-300"
-                    />
-                </div>
-            </footer>
+            <AppFooter />
 
             {/* 日志详情弹窗（与之前一致） */}
             {detailVisible && (

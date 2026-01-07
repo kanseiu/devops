@@ -3,6 +3,7 @@
 
 import {useEffect, useMemo, useState} from 'react';
 import {api} from '@/utils/api';
+import {useConfirm} from '@/components/ConfirmDialog';
 
 // ========= 类型定义（与后端保持一致） =========
 type DevCronJobNotify = {
@@ -67,6 +68,7 @@ export default function NotifyConfigModal({
     const [list, setList] = useState<DevCronJobNotify[]>([]);
     const [loadingList, setLoadingList] = useState(false);
     const [saving, setSaving] = useState(false);
+    const confirm = useConfirm();
 
     // ============ 加载可选通知对象 & 已配置列表 ============
     const loadTargets = async () => {
@@ -156,7 +158,13 @@ export default function NotifyConfigModal({
 
     const remove = async (row: DevCronJobNotify) => {
         if (!row?.id) return;
-        const ok = window.confirm('确认删除该通知配置？此操作不可恢复。');
+        const ok = await confirm({
+            title: '确认删除',
+            message: '确认删除该通知配置？此操作不可恢复。',
+            confirmText: '删除',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!ok) return;
         await api.post(`/api/cronJobNotify/delete/${row.id}`, {});
         await Promise.all([loadList(), loadTargets()]);
@@ -354,16 +362,16 @@ export default function NotifyConfigModal({
                                         <div className="col-span-2 text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button
+                                                    onClick={() => remove(row)}
+                                                    className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
+                                                >
+                                                    删除
+                                                </button>
+                                                <button
                                                     onClick={() => pickForEdit(row)}
                                                     className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
                                                 >
                                                     编辑
-                                                </button>
-                                                <button
-                                                    onClick={() => remove(row)}
-                                                    className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50"
-                                                >
-                                                    删除
                                                 </button>
                                             </div>
                                         </div>

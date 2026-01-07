@@ -4,7 +4,10 @@ import {api} from '@/utils/api';
 import {showGeekOverlay} from '@/components/toast';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
-import AppNav from '@/components/AppNav';
+import LabeledSelect from '@/components/LabeledSelect';
+import AppHeader from '@/components/AppHeader';
+import AppFooter from '@/components/AppFooter';
+import {useConfirm} from '@/components/ConfirmDialog';
 
 // 数据库实体
 type DatabaseItem = {
@@ -40,6 +43,7 @@ export default function Databases() {
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<DatabaseItem>(emptyForm);
     const isEdit = useMemo(() => form.id != null, [form.id]);
+    const confirm = useConfirm();
 
     // ================= 数据加载 =================
     const load = async () => {
@@ -121,9 +125,21 @@ export default function Databases() {
 
     const remove = async (row: DatabaseItem) => {
         if (!row?.id) return;
-        const first = window.confirm(`确认删除数据库 #${row.id} ${row.name}？`);
+        const first = await confirm({
+            title: '确认删除',
+            message: `确认删除数据库 #${row.id} ${row.name}？`,
+            confirmText: '继续',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!first) return;
-        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        const second = await confirm({
+            title: '二次确认',
+            message: '此操作不可恢复，是否继续删除？',
+            confirmText: '删除',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!second) return;
         await api.post(`/api/databases/delete/${row.id}`, {});
         await load();
@@ -161,14 +177,9 @@ export default function Databases() {
 
     // ================= UI =================
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
+        <div className="app-shell flex flex-col h-screen">
             {/* header */}
-            <header className="shrink-0 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
-                <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <h1 className="text-xl font-bold">数据库管理</h1>
-                    <AppNav />
-                </div>
-            </header>
+            <AppHeader title="数据库管理" />
 
             {/* main */}
             <main className="flex-1 overflow-y-auto">
@@ -183,7 +194,7 @@ export default function Databases() {
                                 onClick={openCreate}
                                 className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
                             >
-                                新增数据库
+                                新建
                             </button>
                         </div>
                     </div>
@@ -228,25 +239,27 @@ export default function Databases() {
                                     </div>
 
                                     {/* 操作区：右对齐按钮 */}
-                                    <div className="mt-3 flex items-center gap-2">
-                                        <button
-                                            onClick={() => openEdit(row)}
-                                            className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm hover:bg-gray-50"
-                                        >
-                                            编辑
-                                        </button>
-                                        <button
-                                            onClick={() => test(row.id)}
-                                            className="px-3 py-1.5 rounded-lg border border-blue-500 bg-blue-500 text-white text-sm hover:brightness-95"
-                                        >
-                                            测试连接
-                                        </button>
+                                    <div className="mt-3 flex items-center justify-between gap-2">
                                         <button
                                             onClick={() => remove(row)}
-                                            className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 sm:ml-auto"
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
                                         >
                                             删除
                                         </button>
+                                        <div className="flex items-center gap-2">
+                                            <button
+                                                onClick={() => test(row.id)}
+                                                className="px-3 py-1.5 rounded-lg border border-blue-500 bg-blue-500 text-white text-sm hover:brightness-95"
+                                            >
+                                                测试连接
+                                            </button>
+                                            <button
+                                                onClick={() => openEdit(row)}
+                                                className="px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-sm hover:bg-gray-50"
+                                            >
+                                                编辑
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
@@ -264,27 +277,17 @@ export default function Databases() {
             </main>
 
             {/* footer */}
-            <footer className="shrink-0 bg-white border-t border-gray-100 shadow-sm">
-                <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
-                    <span>v1.0 · 内部工具</span>
-                    <AppNav
-                        className="text-xs text-gray-500"
-                        linkClassName="hover:text-gray-800"
-                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
-                        separatorClassName="mx-3 text-gray-300"
-                    />
-                </div>
-            </footer>
+            <AppFooter />
 
             {/* 弹窗 */}
             {visible && (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-xl w-[720px] max-w-[94vw] p-6">
-                        <div className="flex justify-between items-center mb-4">
-                            <div className="font-semibold">{isEdit ? '编辑数据库' : '新建数据库'}</div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
+                    <div className="w-[760px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
                             <button
                                 onClick={() => setVisible(false)}
-                                className="w-8 h-8 flex items-center justify-center rounded border border-gray-300 bg-white"
+                                className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
                             >
                                 ×
                             </button>
@@ -293,38 +296,34 @@ export default function Databases() {
                         <div className="grid grid-cols-2 gap-4">
                             {/* 数据库类型 */}
                             <div>
-                                <label className="block text-sm text-gray-600 mb-1">数据库类型</label>
-                                <select
+                                <LabeledSelect
+                                    label="数据库类型"
                                     value={form.dbType}
-                                    onChange={(e) => setForm({...form, dbType: e.target.value})}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm"
-                                >
-                                    <option value="mysql">MySQL</option>
-                                    <option value="oceanbase">OceanBase</option>
-                                    <option value="h2">H2</option>
-                                </select>
+                                    onChange={(v) => setForm({...form, dbType: v})}
+                                    options={[
+                                        { value: 'mysql', label: 'MySQL' },
+                                        { value: 'oceanbase', label: 'OceanBase' },
+                                        { value: 'h2', label: 'H2' },
+                                    ]}
+                                />
                             </div>
 
                             {/* 显示名 */}
                             <div>
-                                <label className="block text-sm text-gray-600 mb-1">显示名</label>
-                                <input
-                                    type="text"
+                                <LabeledInput
+                                    label="显示名"
                                     value={form.name}
-                                    onChange={(e) => setForm({...form, name: e.target.value})}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                                    onChange={(v) => setForm({...form, name: v})}
                                     placeholder="例如：业务库-MySQL"
                                 />
                             </div>
 
                             {/* JDBC URL（单独占一行） */}
                             <div className="md:col-span-2">
-                                <label className="block text-sm text-gray-600 mb-1">JDBC URL</label>
-                                <input
-                                    type="text"
+                                <LabeledInput
+                                    label="JDBC URL"
                                     value={form.jdbcUrl}
-                                    onChange={(e) => setForm({...form, jdbcUrl: e.target.value})}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm font-mono"
+                                    onChange={(v) => setForm({...form, jdbcUrl: v})}
                                     placeholder="例如：jdbc:mysql://127.0.0.1:3306/dbname?useSSL=false"
                                 />
                             </div>
@@ -341,35 +340,31 @@ export default function Databases() {
 
                             {/* 用户名 */}
                             <div>
-                                <label className="block text-sm text-gray-600 mb-1">用户名</label>
-                                <input
-                                    type="text"
+                                <LabeledInput
+                                    label="用户名"
                                     value={form.username}
-                                    onChange={(e) => setForm({...form, username: e.target.value})}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                                    onChange={(v) => setForm({...form, username: v})}
                                     placeholder="root"
                                 />
                             </div>
 
                             {/* 密码 */}
                             <div>
-                                <label className="block text-sm text-gray-600 mb-1">密码</label>
-                                <input
-                                    type="text"
+                                <LabeledInput
+                                    label="密码"
                                     value={form.passwordEnc}
-                                    onChange={(e) => setForm({...form, passwordEnc: e.target.value})}
-                                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                                    onChange={(v) => setForm({...form, passwordEnc: v})}
                                 />
                             </div>
                         </div>
 
-                        <div className="flex justify-end gap-3 mt-6">
+                        <div className="mt-4 flex justify-end gap-2">
                             <button onClick={() => setVisible(false)}
-                                    className="px-4 py-2 rounded-lg border border-gray-300 bg-white">
+                                    className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">
                                 取消
                             </button>
                             <button onClick={save}
-                                    className="px-4 py-2 rounded-lg border border-blue-500 bg-blue-500 text-white">
+                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">
                                 {isEdit ? '保存' : '创建'}
                             </button>
                         </div>

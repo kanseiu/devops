@@ -4,7 +4,9 @@ import { api } from '@/utils/api';
 import { showGeekOverlay } from '@/components/toast';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
-import AppNav from '@/components/AppNav';
+import AppHeader from '@/components/AppHeader';
+import AppFooter from '@/components/AppFooter';
+import {useConfirm} from '@/components/ConfirmDialog';
 
 type Server = {
     id?: number;
@@ -43,6 +45,7 @@ export default function Servers() {
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<Server>(emptyForm);
     const isEdit = useMemo(() => form.id != null, [form.id]);
+    const confirm = useConfirm();
 
     // 中文注释：加载列表
     const load = async () => {
@@ -121,9 +124,21 @@ export default function Servers() {
 
     const remove = async (s: Server) => {
         if (!s?.id) return;
-        const first = window.confirm(`确认删除服务器 #${s.id} ${s.name}？`);
+        const first = await confirm({
+            title: '确认删除',
+            message: `确认删除服务器 #${s.id} ${s.name}？`,
+            confirmText: '继续',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!first) return;
-        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        const second = await confirm({
+            title: '二次确认',
+            message: '此操作不可恢复，是否继续删除？',
+            confirmText: '删除',
+            cancelText: '取消',
+            tone: 'danger',
+        });
         if (!second) return;
         await api.post(`/api/servers/delete/${s.id}`, {});
         await load();
@@ -177,14 +192,9 @@ export default function Servers() {
     }, [visible]);
 
     return (
-        <div className="flex flex-col h-screen bg-gray-50">
+        <div className="app-shell flex flex-col h-screen">
             {/* 顶部导航：与首页一致 */}
-            <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
-                <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
-                    <h1 className="text-xl font-bold">服务器管理</h1>
-                    <AppNav />
-                </div>
-            </header>
+            <AppHeader title="服务器管理" />
 
             {/* 主体容器 */}
             <main className="flex-1 overflow-y-auto">
@@ -199,7 +209,7 @@ export default function Servers() {
                                 onClick={openCreate}
                                 className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
                             >
-                                新增服务器
+                                新建
                             </button>
                         </div>
                     </div>
@@ -224,25 +234,27 @@ export default function Servers() {
                                 <div className="text-xs text-gray-500 mb-3">
                                     {s.username}@{s.host}:{s.port} — auth={s.authType}
                                 </div>
-                                <div className="mt-auto flex items-center gap-2">
-                                    <button
-                                        onClick={() => openEdit(s)}
-                                        className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
-                                    >
-                                        编辑
-                                    </button>
-                                    <button
-                                        onClick={() => test(s.id)}
-                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
-                                    >
-                                        测试连接
-                                    </button>
+                                <div className="mt-auto flex items-center justify-between gap-2">
                                     <button
                                         onClick={() => remove(s)}
-                                        className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 sm:ml-auto"
+                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
                                     >
                                         删除
                                     </button>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={() => test(s.id)}
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            测试连接
+                                        </button>
+                                        <button
+                                            onClick={() => openEdit(s)}
+                                            className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
+                                        >
+                                            编辑
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
@@ -251,17 +263,7 @@ export default function Servers() {
             </main>
 
             {/* 底部页脚（固定高度，始终可见） */}
-            <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
-                <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
-                    <span>v1.0 · 内部工具</span>
-                    <AppNav
-                        className="text-xs text-gray-500"
-                        linkClassName="hover:text-gray-800"
-                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
-                        separatorClassName="mx-3 text-gray-300"
-                    />
-                </div>
-            </footer>
+            <AppFooter />
 
             {/* 弹窗 */}
             {visible && (
@@ -269,7 +271,7 @@ export default function Servers() {
                     <div className="w-[720px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
                         {/* 标题行 */}
                         <div className="flex items-center justify-between mb-3">
-                            <div className="font-semibold">{isEdit ? '编辑服务器' : '新增服务器'}</div>
+                            <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
                             <button
                                 onClick={() => setVisible(false)}
                                 className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"

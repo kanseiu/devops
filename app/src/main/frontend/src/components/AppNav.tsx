@@ -19,10 +19,10 @@ type AppNavProps = {
 };
 
 export default function AppNav({
-    className = 'text-sm text-gray-600',
-    linkClassName = 'hover:text-gray-900',
-    activeClassName = 'text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed',
-    separatorClassName = 'mx-2 text-gray-300',
+    className = 'text-sm text-slate-600',
+    linkClassName = 'hover:text-slate-900 transition',
+    activeClassName = 'text-slate-900 font-semibold underline underline-offset-4 cursor-not-allowed',
+    separatorClassName = 'mx-2 text-slate-300',
 }: AppNavProps) {
     const location = useLocation();
 
