@@ -15,4 +15,6 @@ public interface DevCronJobNotifyService extends IService<DevCronJobNotify> {
     void add(DevCronJobNotify request);
 
     void update(DevCronJobNotify request);
+
+    void delete(Long id);
 }

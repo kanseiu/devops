@@ -46,6 +46,13 @@ public class DevServerController {
         return R.ok();
     }
 
+    // 删除
+    @PostMapping("delete/{id}")
+    public R<?> delete(@PathVariable("id") Long id) {
+        devServerService.delete(id);
+        return R.ok(null, "服务器已删除");
+    }
+
     // 中文注释：SSE 实时测试；凭据完全从 DB 读取；前端只需传 id（和可选 command）
     @GetMapping(value = "/{id}/test/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter testStream(@PathVariable Long id,

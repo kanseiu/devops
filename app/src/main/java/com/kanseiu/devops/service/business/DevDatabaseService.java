@@ -11,4 +11,6 @@ public interface DevDatabaseService extends IService<DevDatabase> {
     void update(DevDatabase database);
 
     SseEmitter testConnection(Long id);
+
+    void delete(Long id);
 }

@@ -13,6 +13,8 @@ import com.kanseiu.devops.constant.ProjectConstant;
 import com.kanseiu.devops.cron.CronRegistrar;
 import com.kanseiu.devops.mapper.DevCronJobMapper;
 import com.kanseiu.devops.model.entity.DevCronJob;
+import com.kanseiu.devops.model.entity.DevCronJobNotify;
+import com.kanseiu.devops.service.business.DevCronJobNotifyService;
 import com.kanseiu.devops.service.business.DevCronJobService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,9 @@ public class DevCronJobServiceImpl extends ServiceImpl<DevCronJobMapper, DevCron
 
     @Resource
     private CronRegistrar cronRegistrar;
+
+    @Resource
+    private DevCronJobNotifyService devCronJobNotifyService;
 
     // 获取所有定时任务（按更新时间倒序）
     @Override
@@ -99,6 +104,18 @@ public class DevCronJobServiceImpl extends ServiceImpl<DevCronJobMapper, DevCron
             DevCronJob devCronJob = this.getById(id);
             return Objects.isNull(devCronJob) ? ProjectConstant.UNKNOWN : devCronJob.getJobName();
         }
+    }
+
+    // 删除任务
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void delete(Long id) {
+        DevCronJob job = Optional.ofNullable(this.getById(id))
+                .orElseThrow(() -> new IllegalArgumentException("任务不存在，id=" + id));
+        cronRegistrar.unregister(job.getId());
+        devCronJobNotifyService.remove(Wrappers.<DevCronJobNotify>lambdaQuery()
+                .eq(DevCronJobNotify::getDevCronJobId, job.getId()));
+        this.removeById(job.getId());
     }
 
     // 暂停任务

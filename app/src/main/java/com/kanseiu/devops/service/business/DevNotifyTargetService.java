@@ -9,4 +9,6 @@ public interface DevNotifyTargetService extends IService<DevNotifyTarget> {
 
     void update(DevNotifyTarget request);
 
+    void delete(Long id);
+
 }

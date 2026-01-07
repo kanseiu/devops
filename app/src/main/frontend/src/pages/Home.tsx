@@ -3,6 +3,7 @@ import {Link} from 'react-router-dom';
 import {Server, FileCode, CalendarCheck, Database, Bell} from 'lucide-react';
 import {useEffect, useState} from 'react';
 import {api} from '@/utils/api';
+import AppNav from '@/components/AppNav';
 
 // ===== 类型定义 =====
 type Stat = { servers: number; scripts: number; jobs: number; databases: number; notifyTargets: number; };
@@ -161,17 +162,7 @@ export default function Home() {
             <header className="shrink-0 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold">运维管理平台</h1>
-                    <nav className="text-sm text-gray-600">
-                        <Link to="/servers" className="hover:text-gray-900">服务器</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/scripts" className="hover:text-gray-900">脚本</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/checks" className="hover:text-gray-900">任务</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/notifyTargets" className="hover:text-gray-900">通知方式</Link>
-                    </nav>
+                    <AppNav />
                 </div>
             </header>
 
@@ -295,13 +286,12 @@ export default function Home() {
             <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
                 <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
                     <span>v1.0 · 内部工具</span>
-                    <span className="space-x-3">
-                        <Link to="/servers" className="hover:text-gray-800">服务器</Link>
-                        <Link to="/scripts" className="hover:text-gray-800">脚本</Link>
-                        <Link to="/checks" className="hover:text-gray-800">任务</Link>
-                        <Link to="/databases" className="hover:text-gray-800">数据库</Link>
-                        <Link to="/notifyTargets" className="hover:text-gray-800">通知方式</Link>
-          </span>
+                    <AppNav
+                        className="text-xs text-gray-500"
+                        linkClassName="hover:text-gray-800"
+                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
+                        separatorClassName="mx-3 text-gray-300"
+                    />
                 </div>
             </footer>
 

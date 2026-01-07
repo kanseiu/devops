@@ -1,20 +1,27 @@
 package com.kanseiu.devops.service.business.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kanseiu.devops.mapper.DevServerMapper;
+import com.kanseiu.devops.model.entity.DevCronJob;
 import com.kanseiu.devops.model.entity.DevServer;
 import com.kanseiu.devops.model.request.DevServerSaveRequest;
+import com.kanseiu.devops.service.business.DevCronJobService;
 import com.kanseiu.devops.service.business.DevServerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
+import javax.annotation.Resource;
 import java.util.Objects;
 
 @Slf4j
 @Service
 public class DevServerServiceImpl extends ServiceImpl<DevServerMapper, DevServer> implements DevServerService {
+
+    @Resource
+    private DevCronJobService devCronJobService;
 
     // 新增服务器信息
     @Override
@@ -34,6 +41,20 @@ public class DevServerServiceImpl extends ServiceImpl<DevServerMapper, DevServer
         DevServer devServer = new DevServer();
         BeanUtils.copyProperties(request, devServer);
         this.updateById(devServer);
+    }
+
+    @Override
+    public void delete(Long id) {
+        DevServer server = this.getById(id);
+        if (server == null) {
+            throw new IllegalArgumentException("服务器不存在，id=" + id);
+        }
+        long usingCount = devCronJobService.count(Wrappers.<DevCronJob>lambdaQuery()
+                .eq(DevCronJob::getServerId, id));
+        if (usingCount > 0) {
+            throw new IllegalArgumentException("该服务器被定时任务使用，无法删除");
+        }
+        this.removeById(id);
     }
 
     private void checkDuplicate(DevServerSaveRequest request) {

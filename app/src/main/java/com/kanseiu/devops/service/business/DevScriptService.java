@@ -12,4 +12,6 @@ public interface DevScriptService extends IService<DevScript> {
 
     DevScript getByName(String scriptName);
 
+    void delete(Long id);
+
 }

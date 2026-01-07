@@ -11,7 +11,10 @@ public enum NotifyTypeEnum {
     PHONE,
 
     // 邮箱
-    EMAIL
+    EMAIL,
+
+    // NTFY
+    NTFY
     ;
 
     public static NotifyTypeEnum getByName(String name) {

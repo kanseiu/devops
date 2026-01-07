@@ -1,8 +1,11 @@
 package com.kanseiu.devops.service.business.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.kanseiu.devops.mapper.DevDatabaseMapper;
+import com.kanseiu.devops.model.entity.DevCronJob;
 import com.kanseiu.devops.model.entity.DevDatabase;
+import com.kanseiu.devops.service.business.DevCronJobService;
 import com.kanseiu.devops.service.business.DevDatabaseService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -23,6 +26,9 @@ public class DevDatabaseServiceImpl extends ServiceImpl<DevDatabaseMapper, DevDa
     @Resource
     private ThreadPoolTaskExecutor dbExecPool;
 
+    @Resource
+    private DevCronJobService devCronJobService;
+
 
     @Override
     public void add(DevDatabase database) {
@@ -35,6 +41,19 @@ public class DevDatabaseServiceImpl extends ServiceImpl<DevDatabaseMapper, DevDa
         this.updateById(database);
     }
 
+    @Override
+    public void delete(Long id) {
+        DevDatabase db = this.getById(id);
+        if (db == null) {
+            throw new IllegalArgumentException("数据库不存在，id=" + id);
+        }
+        long usingCount = devCronJobService.count(Wrappers.<DevCronJob>lambdaQuery()
+                .eq(DevCronJob::getDatabaseId, id));
+        if (usingCount > 0) {
+            throw new IllegalArgumentException("该数据库被定时任务使用，无法删除");
+        }
+        this.removeById(id);
+    }
 
 
     // 测试数据库连接

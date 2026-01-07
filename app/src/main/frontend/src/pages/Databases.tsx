@@ -4,7 +4,7 @@ import {api} from '@/utils/api';
 import {showGeekOverlay} from '@/components/toast';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
-import {Link} from "react-router-dom";
+import AppNav from '@/components/AppNav';
 
 // 数据库实体
 type DatabaseItem = {
@@ -119,6 +119,16 @@ export default function Databases() {
         await load();
     };
 
+    const remove = async (row: DatabaseItem) => {
+        if (!row?.id) return;
+        const first = window.confirm(`确认删除数据库 #${row.id} ${row.name}？`);
+        if (!first) return;
+        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        if (!second) return;
+        await api.post(`/api/databases/delete/${row.id}`, {});
+        await load();
+    };
+
     // ================= 测试连接（SSE） =================
     const test = (id?: number) => {
         if (!id) return;
@@ -156,17 +166,7 @@ export default function Databases() {
             <header className="shrink-0 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold">数据库管理</h1>
-                    <nav className="text-sm text-gray-600">
-                        <Link to="/" className="hover:text-gray-900">首页</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/servers" className="hover:text-gray-900">服务器</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/scripts" className="hover:text-gray-900">脚本</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/checks" className="hover:text-gray-900">任务</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/notifyTargets" className="hover:text-gray-900">通知方式</Link>
-                    </nav>
+                    <AppNav />
                 </div>
             </header>
 
@@ -241,6 +241,12 @@ export default function Databases() {
                                         >
                                             测试连接
                                         </button>
+                                        <button
+                                            onClick={() => remove(row)}
+                                            className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 sm:ml-auto"
+                                        >
+                                            删除
+                                        </button>
                                     </div>
                                 </div>
                             ))}
@@ -261,13 +267,12 @@ export default function Databases() {
             <footer className="shrink-0 bg-white border-t border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
                     <span>v1.0 · 内部工具</span>
-                    <span className="space-x-3">
-                        <Link to="/" className="hover:text-gray-800">首页</Link>
-                        <Link to="/servers" className="hover:text-gray-800">服务器</Link>
-                        <Link to="/scripts" className="hover:text-gray-800">脚本</Link>
-                        <Link to="/checks" className="hover:text-gray-800">任务</Link>
-                        <Link to="/notifyTargets" className="hover:text-gray-800">通知方式</Link>
-          </span>
+                    <AppNav
+                        className="text-xs text-gray-500"
+                        linkClassName="hover:text-gray-800"
+                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
+                        separatorClassName="mx-3 text-gray-300"
+                    />
                 </div>
             </footer>
 

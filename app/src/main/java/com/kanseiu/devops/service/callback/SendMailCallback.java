@@ -1,9 +1,9 @@
 package com.kanseiu.devops.service.callback;
 
 import com.kanseiu.devops.constant.JobLogStatus;
-import com.kanseiu.devops.framework.mail.callback.SendMessageCallback;
-import com.kanseiu.devops.framework.mail.model.SendMessageResult;
-import com.kanseiu.devops.model.request.SendEmailRequest;
+import com.kanseiu.devops.framework.base.notify.api.SendMessageCallback;
+import com.kanseiu.devops.framework.mail.model.SendEmailRequest;
+import com.kanseiu.devops.framework.base.notify.model.SendMessageResult;
 import com.kanseiu.devops.service.business.DevCronJobNotifyLogService;
 import org.springframework.stereotype.Component;
 

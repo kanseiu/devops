@@ -41,6 +41,12 @@
             <artifactId>framework-mail</artifactId>
             <version>${module.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>com.kanseiu</groupId>
+            <artifactId>framework-ntfy</artifactId>
+            <version>${module.version}</version>
+        </dependency>
     </dependencies>
 
     <build>

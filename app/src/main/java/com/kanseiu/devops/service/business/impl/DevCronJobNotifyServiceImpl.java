@@ -33,4 +33,9 @@ public class DevCronJobNotifyServiceImpl extends ServiceImpl<DevCronJobNotifyMap
     public void update(DevCronJobNotify request) {
         this.updateById(request);
     }
+
+    @Override
+    public void delete(Long id) {
+        this.removeById(id);
+    }
 }

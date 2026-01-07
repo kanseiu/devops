@@ -43,5 +43,12 @@ public class DevCronJobNotifyController {
         return R.ok();
     }
 
+    // 删除通知配置
+    @PostMapping("/delete/{id}")
+    public R<?> delete(@PathVariable("id") Long id) {
+        devCronJobNotifyService.delete(id);
+        return R.ok(null, "通知配置已删除");
+    }
+
 
 }

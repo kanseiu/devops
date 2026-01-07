@@ -9,4 +9,6 @@ public interface DevServerService extends IService<DevServer> {
     void add(DevServerSaveRequest request);
 
     void update(DevServerSaveRequest request);
+
+    void delete(Long id);
 }

@@ -5,7 +5,6 @@ import com.kanseiu.devops.constant.JobLogStatus;
 import com.kanseiu.devops.framework.mail.service.SendEmail;
 import com.kanseiu.devops.mapper.DevCronJobLogMapper;
 import com.kanseiu.devops.model.entity.*;
-import com.kanseiu.devops.model.request.SendEmailRequest;
 import com.kanseiu.devops.model.response.DevCronJobLogResp;
 import com.kanseiu.devops.service.business.DevCronJobLogService;
 import com.kanseiu.devops.service.handler.SendNotifyService;

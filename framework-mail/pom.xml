@@ -27,6 +27,12 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-thymeleaf</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>com.kanseiu</groupId>
+            <artifactId>framework-base-notify</artifactId>
+            <version>${module.version}</version>
+        </dependency>
     </dependencies>
 
 </project>

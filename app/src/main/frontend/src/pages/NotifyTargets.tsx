@@ -3,10 +3,10 @@
 // 风格与“服务器管理/数据库管理”一致，去卡片化，用白底列表 + 分割线
 
 import {useEffect, useMemo, useState} from 'react';
-import {Link} from 'react-router-dom';
 import {api} from '@/utils/api';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
+import AppNav from '@/components/AppNav';
 
 type NotifyTarget = {
     id?: number;
@@ -128,6 +128,16 @@ export default function NotifyTargets() {
         await load();
     };
 
+    const remove = async (row: NotifyTarget) => {
+        if (!row?.id) return;
+        const first = window.confirm(`确认删除通知对象 #${row.id} ${row.name}？`);
+        if (!first) return;
+        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        if (!second) return;
+        await api.post(`/api/notifyTarget/delete/${row.id}`, {});
+        await load();
+    };
+
     // 中文注释：弹窗 ESC 关闭
     useEffect(() => {
         if (!visible) return;
@@ -154,15 +164,7 @@ export default function NotifyTargets() {
             <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold">通知方式管理</h1>
-                    <nav className="text-sm text-gray-600">
-                        <Link to="/" className="hover:text-gray-900">首页</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/servers" className="hover:text-gray-900">服务器</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/checks" className="hover:text-gray-900">任务</Link>
-                    </nav>
+                    <AppNav />
                 </div>
             </header>
 
@@ -254,12 +256,18 @@ export default function NotifyTargets() {
                                 </div>
 
                                 {/* 操作：水平+垂直居中 */}
-                                <div className="md:col-span-2 flex items-center justify-center">
+                                <div className="md:col-span-2 flex items-center justify-center gap-2">
                                     <button
                                         onClick={() => openEdit(row)}
                                         className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
                                     >
                                         编辑
+                                    </button>
+                                    <button
+                                        onClick={() => remove(row)}
+                                        className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50"
+                                    >
+                                        删除
                                     </button>
                                 </div>
                             </div>
@@ -273,12 +281,12 @@ export default function NotifyTargets() {
             <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
                 <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
                     <span>v1.0 · 内部工具</span>
-                    <span className="space-x-3">
-            <Link to="/" className="hover:text-gray-800">首页</Link>
-            <Link to="/servers" className="hover:text-gray-800">服务器</Link>
-            <Link to="/databases" className="hover:text-gray-800">数据库</Link>
-            <Link to="/checks" className="hover:text-gray-800">任务</Link>
-          </span>
+                    <AppNav
+                        className="text-xs text-gray-500"
+                        linkClassName="hover:text-gray-800"
+                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
+                        separatorClassName="mx-3 text-gray-300"
+                    />
                 </div>
             </footer>
 
@@ -320,7 +328,7 @@ export default function NotifyTargets() {
                                 <label className="block mb-2 text-xs text-gray-500">通知方式</label>
                                 <select
                                     value={form.notifyType}
-                                    onChange={(e) => setForm({ ...form, notifyType: e.target.value })}
+                                    onChange={(e) => setForm({...form, notifyType: e.target.value})}
                                     disabled={isEdit && !!form.verified} // ⭐ 禁用条件
                                     className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500
       ${isEdit && form.verified ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-300'}`}
@@ -328,6 +336,7 @@ export default function NotifyTargets() {
                                     <option value="">请选择</option>
                                     <option value="EMAIL">EMAIL</option>
                                     <option value="PHONE">PHONE</option>
+                                    <option value="NTFY">NTFY</option>
                                     {/* 其他类型可追加 */}
                                 </select>
                                 {(isEdit && form.verified) && (
@@ -343,7 +352,8 @@ export default function NotifyTargets() {
                                     onChange={(e) => setForm({ ...form, notifyTypeContent: e.target.value })}
                                     disabled={isEdit && !!form.verified} // ⭐ 禁用条件
                                     placeholder={form.notifyType?.toUpperCase() === 'EMAIL' ? 'user@example.com' :
-                                        form.notifyType?.toUpperCase() === 'PHONE' ? '11位手机号' : '手机号/邮箱/Hook 等'}
+                                        form.notifyType?.toUpperCase() === 'PHONE' ? '11位手机号' :
+                                            form.notifyType?.toUpperCase() === 'NTFY' ? 'Authorization: Bearer TOKEN' : '手机号/邮箱/Hook 等'}
                                     className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500
       ${isEdit && form.verified ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-300'}`}
                                 />

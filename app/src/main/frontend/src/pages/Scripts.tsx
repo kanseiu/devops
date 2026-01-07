@@ -1,10 +1,10 @@
 // 中文注释：脚本管理页面（Tailwind 风格，统一导航/卡片/弹窗）
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '@/utils/api';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
 import LabeledSelect from '@/components/LabeledSelect';
+import AppNav from '@/components/AppNav';
 
 type DevScript = {
     id?: number;
@@ -104,6 +104,16 @@ export default function DevScripts() {
         await load();
     };
 
+    const remove = async (row: DevScript) => {
+        if (!row?.id) return;
+        const first = window.confirm(`确认删除脚本 #${row.id} ${row.scriptName}？`);
+        if (!first) return;
+        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        if (!second) return;
+        await api.post(`/api/devScript/delete/${row.id}`, {});
+        await load();
+    };
+
     const normalizeUnixNewline = (s: string) => s.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
     useEffect(() => {
@@ -124,17 +134,7 @@ export default function DevScripts() {
             <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold">脚本管理</h1>
-                    <nav className="text-sm text-gray-600">
-                        <Link to="/" className="hover:text-gray-900">首页</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/servers" className="hover:text-gray-900">服务器</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/checks" className="hover:text-gray-900">任务</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/notifyTargets" className="hover:text-gray-900">通知方式</Link>
-                    </nav>
+                    <AppNav />
                 </div>
             </header>
 
@@ -214,12 +214,18 @@ export default function DevScripts() {
                                 </div>
 
                                 {/* 操作 */}
-                                <div className="mt-3">
+                                <div className="mt-3 flex items-center gap-2">
                                     <button
                                         onClick={() => openEdit(row)}
                                         className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
                                     >
                                         编辑
+                                    </button>
+                                    <button
+                                        onClick={() => remove(row)}
+                                        className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 sm:ml-auto"
+                                    >
+                                        删除
                                     </button>
                                 </div>
                             </div>
@@ -233,13 +239,12 @@ export default function DevScripts() {
             <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
                 <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
                     <span>v1.0 · 内部工具</span>
-                    <span className="space-x-3">
-                        <Link to="/" className="hover:text-gray-800">首页</Link>
-                        <Link to="/servers" className="hover:text-gray-800">服务器</Link>
-                        <Link to="/checks" className="hover:text-gray-800">任务</Link>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <Link to="/notifyTargets" className="hover:text-gray-800">通知方式</Link>
-          </span>
+                    <AppNav
+                        className="text-xs text-gray-500"
+                        linkClassName="hover:text-gray-800"
+                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
+                        separatorClassName="mx-3 text-gray-300"
+                    />
                 </div>
             </footer>
 

@@ -1,12 +1,12 @@
 // 中文注释：定时任务维护（Hutool Cron）- Tailwind 统一风格 + jobType 区分 SHELL/SQL
 import {useEffect, useMemo, useState} from 'react';
-import {Link} from 'react-router-dom';
 import {api} from '@/utils/api';
 import {showGeekOverlay} from '@/components/toast';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
 import LabeledSelect from '@/components/LabeledSelect'; // ★ 新增：统一风格的下拉
 import NotifyConfigModal from '@/components/NotifyConfigModal';
+import AppNav from '@/components/AppNav';
 
 // ======== 类型定义 ========
 type Server = { id: number; name?: string; host?: string; port?: number; };
@@ -65,6 +65,7 @@ export default function HutoolCronJobs() {
     // 列表与加载状态
     const [list, setList] = useState<JobItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [schedulerStarted, setSchedulerStarted] = useState(false);
 
     // 下拉选项
     const [servers, setServers] = useState<Server[]>([]);
@@ -130,6 +131,9 @@ export default function HutoolCronJobs() {
 
             const dbs = await api.get<Database[]>('/api/databases/list'); // ★ 加载数据库
             setDatabases(Array.isArray(dbs) ? dbs : []);
+
+            const status = await api.get<{ started?: boolean }>('/api/cron/status');
+            setSchedulerStarted(!!status?.started);
         } finally {
             setLoading(false);
         }
@@ -265,8 +269,23 @@ export default function HutoolCronJobs() {
     // ========= 任务控制 =========
     const pause = async (id?: number) => { if (!id) return; await api.post(`/api/cron/job/pause/${id}`, {}); await loadAll(); };
     const resume = async (id?: number) => { if (!id) return; await api.post(`/api/cron/job/resume/${id}`, {}); await loadAll(); };
-    const startScheduler = async () => { await api.post('/api/cron/start', {}); await loadAll(); };
-    const stopScheduler = async () => { await api.post('/api/cron/stop', {}); await loadAll(); };
+    const remove = async (row: JobItem) => {
+        if (!row?.id) return;
+        const ok = window.confirm(`确认删除任务 #${row.id} ${row.jobName}？此操作不可恢复。`);
+        if (!ok) return;
+        await api.post(`/api/cron/job/delete/${row.id}`, {});
+        await loadAll();
+    };
+    const startScheduler = async () => {
+        const status = await api.post<{ started?: boolean }>('/api/cron/start', {});
+        setSchedulerStarted(!!status?.started);
+        await loadAll();
+    };
+    const stopScheduler = async () => {
+        const status = await api.post<{ started?: boolean }>('/api/cron/stop', {});
+        setSchedulerStarted(!!status?.started);
+        await loadAll();
+    };
     const reloadJobs = async () => { await api.get('/api/cron/reload'); await loadAll(); };
 
     // 弹窗 ESC 关闭
@@ -291,17 +310,7 @@ export default function HutoolCronJobs() {
             <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold">定时任务维护</h1>
-                    <nav className="text-sm text-gray-600">
-                        <Link to="/" className="hover:text-gray-900">首页</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/servers" className="hover:text-gray-900">服务器</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/scripts" className="hover:text-gray-900">脚本</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/notifyTargets" className="hover:text-gray-900">通知方式</Link>
-                    </nav>
+                    <AppNav />
                 </div>
             </header>
 
@@ -316,10 +325,28 @@ export default function HutoolCronJobs() {
                         <div className="flex flex-wrap gap-2">
                             <button onClick={openCreate}
                                     className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">新建任务</button>
-                            <button onClick={startScheduler}
-                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-emerald-600 hover:bg-emerald-700">启动调度器</button>
-                            <button onClick={stopScheduler}
-                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700">停止调度器</button>
+                            <button
+                                onClick={startScheduler}
+                                disabled={schedulerStarted}
+                                className={`px-3.5 py-2 rounded-lg text-sm ${
+                                    schedulerStarted
+                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        : 'text-white bg-emerald-600 hover:bg-emerald-700'
+                                }`}
+                            >
+                                启动调度器
+                            </button>
+                            <button
+                                onClick={stopScheduler}
+                                disabled={!schedulerStarted}
+                                className={`px-3.5 py-2 rounded-lg text-sm ${
+                                    !schedulerStarted
+                                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                                        : 'text-white bg-rose-600 hover:bg-rose-700'
+                                }`}
+                            >
+                                停止调度器
+                            </button>
                             <button onClick={reloadJobs}
                                     className="px-3.5 py-2 rounded-lg text-white text-sm bg-indigo-600 hover:bg-indigo-700">重载任务（DB）</button>
                         </div>
@@ -333,10 +360,19 @@ export default function HutoolCronJobs() {
 
                     <section className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
                         {list.map((row) => (
-                            <div key={row.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition">
+                            <div
+                                key={row.id}
+                                className={`border rounded-2xl p-4 shadow-sm transition ${
+                                    row.disabled
+                                        ? 'bg-gray-200 border-gray-300 text-gray-500 opacity-70 grayscale'
+                                        : 'bg-white border-gray-200 hover:shadow-cardHover'
+                                }`}
+                            >
                                 {/* 标题 + 状态 */}
                                 <div className="font-semibold mb-1 flex items-center gap-2">
-                                    <span>#{row.id} {row.jobName}</span>
+                                    <span className={row.disabled ? 'text-gray-500' : 'text-gray-900'}>
+                                        #{row.id} {row.jobName}
+                                    </span>
                                     {/* jobType badge */}
                                     {row.jobType && (
                                         <span className={`text-[11px] px-2 py-0.5 rounded-full border ${
@@ -345,7 +381,11 @@ export default function HutoolCronJobs() {
                                                 : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                                         }`}>{row.jobType}</span>
                                     )}
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${row.disabled ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        row.disabled
+                                            ? 'bg-gray-200 text-gray-600'
+                                            : 'bg-emerald-50 text-emerald-700'
+                                    }`}>
                     {row.disabled ? '已禁用' : '启用中'}
                   </span>
                                     {row.status && <span className="text-xs text-gray-500">· {row.status}</span>}
@@ -365,7 +405,11 @@ export default function HutoolCronJobs() {
                                 <div className="text-xs text-gray-500 mb-2 space-x-3">
                                     <span>下次：{fmtTime(row.nextRunTime)}</span>
                                 </div>
-                                {row.descText && <div className="text-sm text-gray-700 mb-3">{row.descText}</div>}
+                                {row.descText && (
+                                    <div className={`text-sm mb-3 ${row.disabled ? 'text-gray-500' : 'text-gray-700'}`}>
+                                        {row.descText}
+                                    </div>
+                                )}
 
                                 {/* 操作按钮 */}
                                 <div className="mt-auto flex flex-wrap gap-2">
@@ -387,6 +431,9 @@ export default function HutoolCronJobs() {
                                     <button onClick={() => resume(row.id)}
                                             className="px-3 py-1.5 rounded-lg text-white text-sm bg-emerald-600 hover:bg-emerald-700">恢复
                                     </button>
+                                    <button onClick={() => remove(row)}
+                                            className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 sm:ml-auto">删除
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -398,13 +445,12 @@ export default function HutoolCronJobs() {
             <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
                 <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
                     <span>v1.0 · 内部工具</span>
-                    <span className="space-x-3">
-                        <Link to="/" className="hover:text-gray-800">首页</Link>
-                        <Link to="/servers" className="hover:text-gray-800">服务器</Link>
-                        <Link to="/checks" className="hover:text-gray-800">任务</Link>
-                        <Link to="/databases" className="hover:text-gray-800">数据库</Link>
-                        <Link to="/notifyTargets" className="hover:text-gray-800">通知方式</Link>
-          </span>
+                    <AppNav
+                        className="text-xs text-gray-500"
+                        linkClassName="hover:text-gray-800"
+                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
+                        separatorClassName="mx-3 text-gray-300"
+                    />
                 </div>
             </footer>
 

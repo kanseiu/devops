@@ -154,6 +154,17 @@ export default function NotifyConfigModal({
         }
     };
 
+    const remove = async (row: DevCronJobNotify) => {
+        if (!row?.id) return;
+        const ok = window.confirm('确认删除该通知配置？此操作不可恢复。');
+        if (!ok) return;
+        await api.post(`/api/cronJobNotify/delete/${row.id}`, {});
+        await Promise.all([loadList(), loadTargets()]);
+        if (editing.id === row.id) {
+            resetCreate();
+        }
+    };
+
     // ============ 派生：展示当前 target 信息（便于只读提示） ============
     const currentTarget = useMemo(
         () => targets.find(t => t.id === editing.devNotifyTargetId),
@@ -200,7 +211,7 @@ export default function NotifyConfigModal({
                                     </div>
                                     <div className="mt-1 text-xs text-gray-500">
                                         {currentTarget
-                                            ? `${currentTarget.notifyType} · ${currentTarget.notifyTypeContent}`
+                                            ? `${currentTarget.notifyType} · ${currentTarget.notifyTypeContent} · ${currentTarget.verified ? '已验证' : '未验证'}`
                                             : 'ID: ' + editing.devNotifyTargetId}
                                     </div>
                                 </div>
@@ -213,7 +224,7 @@ export default function NotifyConfigModal({
                                     <option value={0}>请选择通知对象</option>
                                     {targets.map(t => (
                                         <option key={t.id} value={t.id}>
-                                            {t.name}（{t.username}） · {t.notifyType}:{t.notifyTypeContent}
+                                            {t.name}（{t.username}） · {t.notifyType}:{t.notifyTypeContent} · {t.verified ? '已验证' : '未验证'}
                                         </option>
                                     ))}
                                 </select>
@@ -341,12 +352,20 @@ export default function NotifyConfigModal({
 
                                         {/* 操作 */}
                                         <div className="col-span-2 text-center">
-                                            <button
-                                                onClick={() => pickForEdit(row)}
-                                                className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
-                                            >
-                                                编辑
-                                            </button>
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button
+                                                    onClick={() => pickForEdit(row)}
+                                                    className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
+                                                >
+                                                    编辑
+                                                </button>
+                                                <button
+                                                    onClick={() => remove(row)}
+                                                    className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50"
+                                                >
+                                                    删除
+                                                </button>
+                                            </div>
                                         </div>
                                     </div>
                                 ))}

@@ -34,4 +34,10 @@ public class DevNotifyTargetController {
         }
         return R.ok();
     }
+
+    @PostMapping("delete/{id}")
+    public R<?> delete(@PathVariable("id") Long id) {
+        devNotifyTargetService.delete(id);
+        return R.ok(null, "通知对象已删除");
+    }
 }

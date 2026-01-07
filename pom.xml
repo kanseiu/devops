@@ -17,9 +17,11 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>framework-db</module>
         <module>app</module>
+        <module>framework-db</module>
         <module>framework-mail</module>
+        <module>framework-ntfy</module>
+        <module>framework-base-notify</module>
     </modules>
 
     <properties>

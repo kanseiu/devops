@@ -36,4 +36,10 @@ public class DevDatabaseController {
     public SseEmitter test(@PathVariable Long id) {
         return devDatabaseService.testConnection(id);
     }
+
+    @PostMapping("delete/{id}")
+    public R<?> delete(@PathVariable Long id) {
+        devDatabaseService.delete(id);
+        return R.ok(null, "数据库已删除");
+    }
 }

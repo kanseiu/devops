@@ -2,10 +2,13 @@ package com.kanseiu.devops.service.handler;
 
 import cn.hutool.core.util.StrUtil;
 import com.kanseiu.devops.constant.NotifyTypeEnum;
+import com.kanseiu.devops.framework.mail.model.SendEmailRequest;
 import com.kanseiu.devops.framework.mail.service.SendEmail;
+import com.kanseiu.devops.framework.ntfy.model.NtfyResult;
+import com.kanseiu.devops.framework.ntfy.model.SendNtfyRequest;
+import com.kanseiu.devops.framework.ntfy.service.SendNtfy;
 import com.kanseiu.devops.model.entity.DevCronJobLog;
 import com.kanseiu.devops.model.entity.DevCronJobNotify;
-import com.kanseiu.devops.model.request.SendEmailRequest;
 import com.kanseiu.devops.service.business.DevCronJobNotifyLogService;
 import com.kanseiu.devops.service.business.DevCronJobNotifyService;
 import com.kanseiu.devops.service.business.DevCronJobService;
@@ -37,15 +40,18 @@ public class SendNotifyService {
     @Resource
     private SendEmail sendEmail;
 
+    @Resource
+    private SendNtfy sendNtfy;
+
     // 发送邮件
     public void send(DevCronJobLog devCronJobLog) {
         // 获取对应任务的通知对象
         List<DevCronJobNotify> devCronJobNotifyList = devCronJobNotifyService.listByJobId(devCronJobLog.getJobId());
         // 过滤出非禁用的
-        if(!CollectionUtils.isEmpty(devCronJobNotifyList)) {
+        if (!CollectionUtils.isEmpty(devCronJobNotifyList)) {
             devCronJobNotifyList = devCronJobNotifyList.stream().filter(r -> !r.getDisabled()).collect(Collectors.toList());
             // 获取过滤后的通知对象
-            if(!CollectionUtils.isEmpty(devCronJobNotifyList)) {
+            if (!CollectionUtils.isEmpty(devCronJobNotifyList)) {
                 // 查询定时任务名称
                 String jobName = devCronJobService.getJobName(devCronJobLog.getJobId());
                 devCronJobLog.setJobName(jobName);
@@ -63,14 +69,16 @@ public class SendNotifyService {
             // 获取触发状态
             String notifyOnStatus = devCronJobNotify.getNotifyOnStatus();
             // 如果触发状态中包含任务执行状态
-            if(Arrays.asList(notifyOnStatus.split(StrUtil.COMMA)).contains(status)) {
+            if (Arrays.asList(notifyOnStatus.split(StrUtil.COMMA)).contains(status)) {
                 String notifyType = devCronJobNotify.getNotifyType();
                 NotifyTypeEnum notifyTypeEnum = NotifyTypeEnum.getByName(notifyType);
-                if(Objects.nonNull(notifyTypeEnum)) {
-                    if(NotifyTypeEnum.EMAIL.equals(notifyTypeEnum)) {
+                if (Objects.nonNull(notifyTypeEnum)) {
+                    if (NotifyTypeEnum.EMAIL.equals(notifyTypeEnum)) {
                         this.sendEmail(devCronJobLog, devCronJobNotify);
                     } else if (NotifyTypeEnum.PHONE.equals(notifyTypeEnum)) {
                         this.sendPhone(devCronJobLog, devCronJobNotify);
+                    } else if (NotifyTypeEnum.NTFY.equals(notifyTypeEnum)) {
+                        this.sendNtfy(devCronJobLog, devCronJobNotify);
                     } else {
                         log.warn("还没有实现[{}]的通知功能！", notifyType);
                     }
@@ -92,6 +100,17 @@ public class SendNotifyService {
         sendEmailRequest.setMes(html);
         // 发送
         sendEmail.html(sendEmailRequest);
+    }
+
+    // 发送NTFY
+    private void sendNtfy(DevCronJobLog devCronJobLog, DevCronJobNotify devCronJobNotify) {
+        // 记录日志
+        Long notifyLogId = devCronJobNotifyLogService.start(devCronJobLog, devCronJobNotify);
+        // 组装发送NTFY的参数
+        SendNtfyRequest request = new SendNtfyRequest("devops-alert", devCronJobNotify.getNotifyTypeContent(), devCronJobLog.getJobName(), devCronJobLog.getErrorText());
+        request.setBusinessId(notifyLogId);
+        // 发送
+        sendNtfy.text(request);
     }
 
     private void sendPhone(DevCronJobLog log, DevCronJobNotify devCronJobNotify) {

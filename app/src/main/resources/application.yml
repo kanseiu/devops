@@ -60,3 +60,11 @@ mybatis-plus:
     db-config:
       id-type: assign_id
       table-underline: true
+
+ntfy:
+  base-url: ""
+  connect-timeout-ms: 3000
+  read-timeout-ms: 8000
+  retry:
+    max-attempts: 3
+    backoff-ms: 500

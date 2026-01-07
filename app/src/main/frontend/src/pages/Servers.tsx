@@ -1,10 +1,10 @@
 // 中文注释：服务器管理（Tailwind 统一风格 + 顶部导航 + 卡片式列表）
 import { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { api } from '@/utils/api';
 import { showGeekOverlay } from '@/components/toast';
 import LabeledInput from '@/components/LabeledInput';
 import LabeledTextArea from '@/components/LabeledTextArea';
+import AppNav from '@/components/AppNav';
 
 type Server = {
     id?: number;
@@ -119,6 +119,16 @@ export default function Servers() {
         await load();
     };
 
+    const remove = async (s: Server) => {
+        if (!s?.id) return;
+        const first = window.confirm(`确认删除服务器 #${s.id} ${s.name}？`);
+        if (!first) return;
+        const second = window.confirm('此操作不可恢复，是否继续删除？');
+        if (!second) return;
+        await api.post(`/api/servers/delete/${s.id}`, {});
+        await load();
+    };
+
     // 中文注释：规范化 PEM：换行/BOM，避免后端 JSch 报 invalid privatekey
     const normalizePem = (pem: string) => {
         let s = pem.replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\uFEFF/g, '');
@@ -172,17 +182,7 @@ export default function Servers() {
             <header className="sticky top-0 z-10 bg-white/80 backdrop-blur border-b border-gray-100 shadow-sm">
                 <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
                     <h1 className="text-xl font-bold">服务器管理</h1>
-                    <nav className="text-sm text-gray-600">
-                        <Link to="/" className="hover:text-gray-900">首页</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/scripts" className="hover:text-gray-900">脚本</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/checks" className="hover:text-gray-900">任务</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <span className="mx-3">·</span>
-                        <Link to="/notifyTargets" className="hover:text-gray-900">通知方式</Link>
-                    </nav>
+                    <AppNav />
                 </div>
             </header>
 
@@ -237,6 +237,12 @@ export default function Servers() {
                                     >
                                         测试连接
                                     </button>
+                                    <button
+                                        onClick={() => remove(s)}
+                                        className="px-3 py-1.5 rounded-lg text-sm border border-rose-200 text-rose-700 bg-white hover:bg-rose-50 sm:ml-auto"
+                                    >
+                                        删除
+                                    </button>
                                 </div>
                             </div>
                         ))}
@@ -248,13 +254,12 @@ export default function Servers() {
             <footer className="shrink-0 bg-white border-t border-gray-100 drop-shadow-md">
                 <div className="mx-auto max-w-6xl px-4 py-3 text-xs text-gray-500 flex items-center justify-between">
                     <span>v1.0 · 内部工具</span>
-                    <span className="space-x-3">
-                        <Link to="/" className="hover:text-gray-800">首页</Link>
-                        <Link to="/scripts" className="hover:text-gray-800">脚本</Link>
-                        <Link to="/checks" className="hover:text-gray-800">任务</Link>
-                        <Link to="/databases" className="hover:text-gray-900">数据库</Link>
-                        <Link to="/notifyTargets" className="hover:text-gray-800">通知方式</Link>
-          </span>
+                    <AppNav
+                        className="text-xs text-gray-500"
+                        linkClassName="hover:text-gray-800"
+                        activeClassName="text-gray-500 font-semibold underline underline-offset-4 cursor-not-allowed"
+                        separatorClassName="mx-3 text-gray-300"
+                    />
                 </div>
             </footer>
 

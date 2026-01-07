@@ -31,8 +31,6 @@
         WHERE
             t.DISABLED = 0
         AND
-            t.VERIFIED = 1
-        AND
             m.ID IS NULL
     </select>
 

@@ -1,5 +1,6 @@
-package com.kanseiu.devops.framework.mail.model;
+package com.kanseiu.devops.framework.base.notify.model;
 
+import com.kanseiu.devops.framework.base.notify.model.SendMessageRequest;
 import lombok.Data;
 import lombok.ToString;
 

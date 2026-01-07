@@ -1,5 +1,7 @@
 package com.kanseiu.devops.controller;
 
+import cn.hutool.Hutool;
+import cn.hutool.core.date.DatePattern;
 import cn.hutool.extra.spring.SpringUtil;
 import com.kanseiu.devops.constant.JobTypeEnum;
 import com.kanseiu.devops.cron.CronScheduler;
@@ -13,10 +15,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import javax.annotation.Resource;
 import java.io.IOException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 // 中文注释：定时任务控制器
 @RestController
@@ -127,5 +127,26 @@ public class DevCronJobController {
     public R<Map<String, Object>> resume(@PathVariable("id") Long id) {
         devCronJobService.resume(id);
         return R.ok(null, "任务已恢复");
+    }
+
+    // 删除单个任务
+    @PostMapping("/job/delete/{id}")
+    public R<?> delete(@PathVariable("id") Long id) {
+        devCronJobService.delete(id);
+        return R.ok(null, "任务已删除");
+    }
+
+    public static void main(String[] args) throws Exception{
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        String s = "2024-01-01 12:12:12";
+
+        SimpleDateFormat simpleDateFormat1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        System.out.println(sdf.format(simpleDateFormat1.parse(s)));
+
+        SimpleDateFormat simpleDateFormat2 = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss");
+        System.out.println(sdf.format(simpleDateFormat2.parse(s)));
+
+        SimpleDateFormat simpleDateFormat3 = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
+        System.out.println(sdf.format(simpleDateFormat3.parse(s)));
     }
 }

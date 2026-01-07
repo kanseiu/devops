@@ -17,7 +17,7 @@ public interface DevCronJobService extends IService<DevCronJob> {
 
     String getJobName(Long id);
 
-
+    void delete(Long id);
 
     void pause(Long id);
 

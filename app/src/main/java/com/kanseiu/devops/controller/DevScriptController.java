@@ -35,4 +35,10 @@ public class DevScriptController {
         return R.ok();
     }
 
+    @PostMapping("delete/{id}")
+    public R<?> delete(@PathVariable("id") Long id) {
+        devScriptService.delete(id);
+        return R.ok(null, "脚本已删除");
+    }
+
 }
