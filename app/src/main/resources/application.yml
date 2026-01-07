@@ -41,6 +41,11 @@ spring:
     console:
       enabled: true
       path: /h2-console
+  session:
+    store-type: jdbc
+    timeout: 1h
+    jdbc:
+      initialize-schema: never
 
 logging:
   level:

@@ -276,3 +276,29 @@ create table if not exists DEV_SERVER
 
 create unique index if not exists UK_HOST_USER_PORT
     on DEV_SERVER (HOST, USERNAME, PORT);
+
+-- Spring Session JDBC tables
+create table if not exists SPRING_SESSION
+(
+    PRIMARY_ID             CHAR(36) not null,
+    SESSION_ID             CHAR(36) not null,
+    CREATION_TIME          BIGINT   not null,
+    LAST_ACCESS_TIME       BIGINT   not null,
+    MAX_INACTIVE_INTERVAL  INTEGER  not null,
+    EXPIRY_TIME            BIGINT   not null,
+    PRINCIPAL_NAME         VARCHAR(100),
+    primary key (PRIMARY_ID)
+);
+
+create unique index if not exists SPRING_SESSION_IX1 on SPRING_SESSION (SESSION_ID);
+create index if not exists SPRING_SESSION_IX2 on SPRING_SESSION (EXPIRY_TIME);
+create index if not exists SPRING_SESSION_IX3 on SPRING_SESSION (PRINCIPAL_NAME);
+
+create table if not exists SPRING_SESSION_ATTRIBUTES
+(
+    SESSION_PRIMARY_ID   CHAR(36)     not null,
+    ATTRIBUTE_NAME       VARCHAR(200) not null,
+    ATTRIBUTE_BYTES      BLOB         not null,
+    primary key (SESSION_PRIMARY_ID, ATTRIBUTE_NAME),
+    foreign key (SESSION_PRIMARY_ID) references SPRING_SESSION(PRIMARY_ID) on delete cascade
+);
