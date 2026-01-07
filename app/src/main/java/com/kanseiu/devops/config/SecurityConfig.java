@@ -26,10 +26,14 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.authorizeRequests()
-                    .antMatchers("/assets/**", "/favicon.ico", "/h2-console/**", "/druid/**").permitAll()
+                    .antMatchers("/assets/**", "/favicon.ico", "/h2-console/**", "/druid/**", "/login", "/login/**").permitAll()
                     .anyRequest().authenticated()
                 .and()
-                    .formLogin().defaultSuccessUrl("/", true).permitAll()
+                    .formLogin()
+                        .loginPage("/login")
+                        .defaultSuccessUrl("/", true)
+                        .failureUrl("/login?error")
+                        .permitAll()
                 .and()
                     .logout().permitAll()
                 .and()

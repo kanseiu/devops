@@ -330,7 +330,7 @@ export default function HutoolCronJobs() {
                             <button
                                 onClick={startScheduler}
                                 disabled={schedulerStarted}
-                                className={`px-3.5 py-2 rounded-lg text-sm ${
+                                className={`action-btn px-3.5 py-2 rounded-lg text-sm ${
                                     schedulerStarted
                                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                         : 'text-white bg-emerald-600 hover:bg-emerald-700'
@@ -341,7 +341,7 @@ export default function HutoolCronJobs() {
                             <button
                                 onClick={stopScheduler}
                                 disabled={!schedulerStarted}
-                                className={`px-3.5 py-2 rounded-lg text-sm ${
+                                className={`action-btn px-3.5 py-2 rounded-lg text-sm ${
                                     !schedulerStarted
                                         ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                                         : 'text-white bg-rose-600 hover:bg-rose-700'
@@ -350,10 +350,10 @@ export default function HutoolCronJobs() {
                                 停止调度器
                             </button>
                             <button onClick={reloadJobs}
-                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-indigo-600 hover:bg-indigo-700">重载任务（DB）
+                                    className="action-btn px-3.5 py-2 rounded-lg text-white text-sm bg-indigo-600 hover:bg-indigo-700">重载任务（DB）
                             </button>
                             <button onClick={openCreate}
-                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">新建
+                                    className="action-btn px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">新建
                             </button>
                         </div>
                     </div>

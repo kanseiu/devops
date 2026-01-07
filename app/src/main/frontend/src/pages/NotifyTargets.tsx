@@ -189,13 +189,13 @@ export default function NotifyTargets() {
                         <div className="flex gap-2">
                             <button
                                 onClick={load}
-                                className="px-3.5 py-2 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50"
+                                className="action-btn px-3.5 py-2 rounded-lg text-sm bg-white border border-gray-200 hover:bg-gray-50"
                             >
                                 刷新
                             </button>
                             <button
                                 onClick={openCreate}
-                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                className="action-btn px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
                             >
                                 新建
                             </button>

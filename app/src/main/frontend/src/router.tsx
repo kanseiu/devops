@@ -6,6 +6,7 @@ import Scripts from '@/pages/Scripts';
 import Checks from '@/pages/Checks';
 import Databases from "@/pages/Databases";
 import NotifyTargets from "@/pages/NotifyTargets";
+import Login from "@/pages/Login";
 
 export const router = createBrowserRouter([
     { path: '/', element: <Home /> },
@@ -14,4 +15,5 @@ export const router = createBrowserRouter([
     { path: '/checks', element: <Checks /> },
     { path: '/databases', element: <Databases /> },
     { path: '/notifyTargets', element: <NotifyTargets /> },
+    { path: '/login', element: <Login /> },
 ]);

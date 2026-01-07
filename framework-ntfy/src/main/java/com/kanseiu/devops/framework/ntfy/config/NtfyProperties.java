@@ -10,7 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public class NtfyProperties {
 
     /**
-     * ntfy 服务的 base url，例如：https://push.kanseiu.com
+     * ntfy 服务的 base url
      */
     private String baseUrl;
 

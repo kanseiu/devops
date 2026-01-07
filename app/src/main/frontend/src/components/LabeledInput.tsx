@@ -5,14 +5,17 @@ export default function LabeledInput(props: {
     onChange: (v: any) => void;
     placeholder?: string;
     autoComplete?: string;
+    name?: string;
+    disabled?: boolean;
 }) {
-    const { label, type = 'text', value, onChange, placeholder, autoComplete, disabled } = props;
+    const { label, type = 'text', value, onChange, placeholder, autoComplete, name, disabled } = props;
 
     return (
         <label style={{ display: 'block', minWidth: 0 }}>
             <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{label}</div>
             <input
                 type={type}
+                name={name}
                 value={value ?? ''}
                 onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)}
                 placeholder={placeholder}

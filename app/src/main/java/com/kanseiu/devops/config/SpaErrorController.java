@@ -22,7 +22,6 @@ public class SpaErrorController implements ErrorController {
                 && !uri.startsWith("/api")
                 && !uri.startsWith("/h2-console")
                 && !uri.startsWith("/druid")
-                && !"/login".equals(uri)
                 && !uri.contains(".")) {
             return "forward:/index.html";
         }

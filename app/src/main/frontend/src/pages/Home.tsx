@@ -208,7 +208,7 @@ export default function Home() {
                             <h2 className="text-base font-semibold">今日失败任务</h2>
                             <button
                                 onClick={loadTodayFail}
-                                className="px-3 py-1.5 rounded-lg text-sm border border-gray-200 bg-white hover:bg-gray-50"
+                                className="action-btn px-3 py-1.5 rounded-lg text-sm border border-gray-200 bg-white hover:bg-gray-50"
                             >
                                 刷新
                             </button>

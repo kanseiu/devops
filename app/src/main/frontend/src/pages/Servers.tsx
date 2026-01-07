@@ -207,7 +207,7 @@ export default function Servers() {
                         <div className="space-x-3">
                             <button
                                 onClick={openCreate}
-                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                className="action-btn px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
                             >
                                 新建
                             </button>
