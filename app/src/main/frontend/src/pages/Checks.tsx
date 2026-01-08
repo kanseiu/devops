@@ -320,7 +320,7 @@ export default function HutoolCronJobs() {
 
             {/* 主体 */}
             <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+                <div className="mx-auto max-w-6xl px-4 py-6 space-y-6 page-content">
                     {/* 操作区 */}
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                         <div className="text-sm text-gray-500">
@@ -361,10 +361,10 @@ export default function HutoolCronJobs() {
                 {/* 列表 */}
                 {loading && <div className="text-sm text-gray-500">加载中...</div>}
                 {!loading && list.length === 0 && (
-                        <div className="bg-white rounded-2xl shadow-card p-8 text-center text-gray-500">暂无数据</div>
+                        <div className="bg-white border border-gray-200 rounded-2xl shadow-card p-8 text-center text-gray-500">暂无数据</div>
                     )}
 
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch stagger">
                         {list.map((row) => (
                             <div
                                 key={row.id}
@@ -454,52 +454,54 @@ export default function HutoolCronJobs() {
 
             {/* 日志弹窗（保持不变） */}
             {logVisible && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-                    <div className="w-[860px] max-w-[96vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[860px] max-w-[96vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         <div className="flex items-center justify-between mb-3">
                             <div className="font-semibold">任务日志 {logJob ? `#${logJob.id} ${logJob.jobName}` : ''}</div>
                             <button onClick={() => setLogVisible(false)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">×</button>
                         </div>
-                        {logLoading ? (
-                            <div className="text-sm text-gray-500">加载中...</div>
-                        ) : logs.length === 0 ? (
-                            <div className="text-sm text-gray-500">暂无日志</div>
-                        ) : (
-                            <div className="space-y-3 max-h-[70vh] overflow-auto pr-1">
-                                {logs.map(log => (
-                                    <div key={log.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
-                                        <div className="flex flex-wrap items-center gap-2 text-sm">
-                                            <span className="font-semibold">#{log.id}</span>
-                                            <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(log.status)}`}>{log.status || '—'}</span>
-                                            <span className="text-gray-500">连接信息: {log.connectInfo || '—'}</span>
-                                            <span className="text-gray-500">脚本: {log.scriptName || '—'}</span>
-                                            <span className="text-gray-500">退出码: {log.exitCode ?? '—'}</span>
-                                            <span className="text-gray-500">耗时: {fmtDur(log.durationMs)}</span>
+                        <div className="modal-body flex-1">
+                            {logLoading ? (
+                                <div className="text-sm text-gray-500">加载中...</div>
+                            ) : logs.length === 0 ? (
+                                <div className="text-sm text-gray-500">暂无日志</div>
+                            ) : (
+                                <div className="space-y-3">
+                                    {logs.map(log => (
+                                        <div key={log.id} className="border border-gray-200 rounded-xl p-3 bg-gray-50">
+                                            <div className="flex flex-wrap items-center gap-2 text-sm">
+                                                <span className="font-semibold">#{log.id}</span>
+                                                <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge(log.status)}`}>{log.status || '—'}</span>
+                                                <span className="text-gray-500">连接信息: {log.connectInfo || '—'}</span>
+                                                <span className="text-gray-500">脚本: {log.scriptName || '—'}</span>
+                                                <span className="text-gray-500">退出码: {log.exitCode ?? '—'}</span>
+                                                <span className="text-gray-500">耗时: {fmtDur(log.durationMs)}</span>
+                                            </div>
+                                            <div className="mt-1 text-xs text-gray-500 space-x-3">
+                                                <span>创建: {fmtTime(log.createTime)}</span>
+                                                <span>开始: {fmtTime(log.startTime)}</span>
+                                                <span>结束: {fmtTime(log.endTime)}</span>
+                                            </div>
+                                            {log.argsText && (
+                                                <div className="mt-1 text-xs text-gray-600">参数：<code className="px-1 border rounded">{log.argsText}</code></div>
+                                            )}
+                                            <details className="mt-2 group">
+                                                <summary className="cursor-pointer select-none text-sm text-gray-700 group-open:mb-1">标准输出（output）</summary>
+                                                <pre className="whitespace-pre-wrap text-xs bg-white border border-gray-200 rounded-lg p-2 overflow-auto max-h-64">{log.outputText || ''}</pre>
+                                            </details>
+                                            <details className="mt-2 group">
+                                                <summary className="cursor-pointer select-none text-sm text-gray-700 group-open:mb-1">错误输出（error）</summary>
+                                                <pre className="whitespace-pre-wrap text-xs bg-white border border-gray-200 rounded-lg p-2 overflow-auto max-h-64 text-rose-700">{log.errorText || ''}</pre>
+                                            </details>
+                                            <details className="mt-2 group">
+                                                <summary className="cursor-pointer select-none text-sm text-gray-700 group-open:mb-1">脚本内容（只读）</summary>
+                                                <pre className="whitespace-pre-wrap text-xs bg-white border border-gray-200 rounded-lg p-2 overflow-auto max-h-64">{log.scriptContent || ''}</pre>
+                                            </details>
                                         </div>
-                                        <div className="mt-1 text-xs text-gray-500 space-x-3">
-                                            <span>创建: {fmtTime(log.createTime)}</span>
-                                            <span>开始: {fmtTime(log.startTime)}</span>
-                                            <span>结束: {fmtTime(log.endTime)}</span>
-                                        </div>
-                                        {log.argsText && (
-                                            <div className="mt-1 text-xs text-gray-600">参数：<code className="px-1 border rounded">{log.argsText}</code></div>
-                                        )}
-                                        <details className="mt-2 group">
-                                            <summary className="cursor-pointer select-none text-sm text-gray-700 group-open:mb-1">标准输出（output）</summary>
-                                            <pre className="whitespace-pre-wrap text-xs bg-white border border-gray-200 rounded-lg p-2 overflow-auto max-h-64">{log.outputText || ''}</pre>
-                                        </details>
-                                        <details className="mt-2 group">
-                                            <summary className="cursor-pointer select-none text-sm text-gray-700 group-open:mb-1">错误输出（error）</summary>
-                                            <pre className="whitespace-pre-wrap text-xs bg-white border border-gray-200 rounded-lg p-2 overflow-auto max-h-64 text-rose-700">{log.errorText || ''}</pre>
-                                        </details>
-                                        <details className="mt-2 group">
-                                            <summary className="cursor-pointer select-none text-sm text-gray-700 group-open:mb-1">脚本内容（只读）</summary>
-                                            <pre className="whitespace-pre-wrap text-xs bg-white border border-gray-200 rounded-lg p-2 overflow-auto max-h-64">{log.scriptContent || ''}</pre>
-                                        </details>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                         <div className="mt-4 text-right">
                             <button onClick={() => setLogVisible(false)} className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">关闭</button>
                         </div>
@@ -509,8 +511,8 @@ export default function HutoolCronJobs() {
 
             {/* 新建/编辑 弹窗 */}
             {visible && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-                    <div className="w-[760px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[760px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题 */}
                         <div className="flex items-center justify-between mb-3">
                             <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
@@ -518,6 +520,7 @@ export default function HutoolCronJobs() {
                         </div>
 
                         {/* 表单 */}
+                        <div className="modal-body flex-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {/* 第一行：任务名 / Cron */}
                             <div>
@@ -567,12 +570,12 @@ export default function HutoolCronJobs() {
 
                             {/* 第三行：脚本（根据 jobType 过滤） */}
                             <div>
-                                <label className="block mb-2 text-xs text-gray-500">脚本名称</label>
+                                <label className="block ui-label">脚本名称</label>
                                 <select
                                     value={form.scriptName}
                                     onChange={(e) => setForm({ ...form, scriptName: e.target.value })}
                                     disabled={!form.jobType || isEdit} // ★ 未选类型或编辑时禁用
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                                    className="ui-field"
                                 >
                                     <option value="">{form.jobType ? '请选择脚本' : '请先选择任务类型'}</option>
                                     {filteredScripts.map(s => (
@@ -585,12 +588,12 @@ export default function HutoolCronJobs() {
                             <div>
                                 {form.jobType === 'SQL' ? (
                                     <>
-                                        <label className="block mb-2 text-xs text-gray-500">目标数据库</label>
+                                        <label className="block ui-label">目标数据库</label>
                                         <select
                                             value={form.databaseId || 0}
                                             onChange={(e) => setForm({ ...form, databaseId: Number(e.target.value) || undefined })}
                                             disabled={!form.jobType || form.jobType !== 'SQL' || isEdit}
-                                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                                            className="ui-field"
                                         >
                                             <option value={0}>请选择数据库</option>
                                             {databases.map(d => (
@@ -600,12 +603,12 @@ export default function HutoolCronJobs() {
                                     </>
                                 ) : (
                                     <>
-                                        <label className="block mb-2 text-xs text-gray-500">目标服务器</label>
+                                        <label className="block ui-label">目标服务器</label>
                                         <select
                                             value={form.serverId || 0}
                                             onChange={(e) => setForm({ ...form, serverId: Number(e.target.value) || undefined })}
                                             disabled={!form.jobType || form.jobType !== 'SHELL' || isEdit}
-                                            className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-500"
+                                            className="ui-field"
                                         >
                                             <option value={0}>请选择服务器</option>
                                             {servers.map(s => (
@@ -636,11 +639,11 @@ export default function HutoolCronJobs() {
                             </div>
 
                             <div>
-                                <label className="block mb-2 text-xs text-gray-500">是否启用</label>
+                                <label className="block ui-label">是否启用</label>
                                 <select
                                     value={form.disabled ? '1' : '0'}
                                     onChange={(e) => setForm({ ...form, disabled: e.target.value === '1' })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="ui-field"
                                 >
                                     <option value="0">启用</option>
                                     <option value="1">禁用</option>
@@ -656,6 +659,7 @@ export default function HutoolCronJobs() {
                                     placeholder="例如：每天 15:00 检查最新备份是否生成；失败会报警"
                                 />
                             </div>
+                        </div>
                         </div>
 
                         {/* 底部：速查 + 操作按钮 */}

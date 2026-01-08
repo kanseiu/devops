@@ -73,8 +73,8 @@ export function ConfirmProvider({children}: { children: ReactNode }) {
         <ConfirmContext.Provider value={confirm}>
             {children}
             {state.open && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/45">
-                    <div className="w-[420px] max-w-[92vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[420px] max-w-[92vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         <div className="flex items-center justify-between mb-2">
                             <div className="font-semibold text-gray-800">{state.title}</div>
                             <button
@@ -85,7 +85,7 @@ export function ConfirmProvider({children}: { children: ReactNode }) {
                                 ×
                             </button>
                         </div>
-                        <div className="text-sm text-gray-600 leading-6 mb-4 whitespace-pre-wrap">
+                        <div className="modal-body flex-1 text-sm text-gray-600 leading-6 mb-4 whitespace-pre-wrap">
                             {state.message}
                         </div>
                         <div className="flex justify-end gap-2">

@@ -180,7 +180,7 @@ export default function NotifyTargets() {
 
             {/* 主体：行列表（非卡片） */}
             <main className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+                <div className="mx-auto max-w-6xl px-4 py-6 space-y-6 page-content">
                     {/* 操作区 */}
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-500">
@@ -205,9 +205,9 @@ export default function NotifyTargets() {
                     {/* 列表区：卡片样式 */}
                     {loading && <div className="text-sm text-gray-500">加载中...</div>}
                     {!loading && list.length === 0 && (
-                        <div className="bg-white rounded-2xl shadow-card p-8 text-center text-gray-500">暂无数据</div>
+                        <div className="bg-white border border-gray-200 rounded-2xl shadow-card p-8 text-center text-gray-500">暂无数据</div>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
                         {list.map(row => (
                             <div
                                 key={row.id}
@@ -283,8 +283,8 @@ export default function NotifyTargets() {
 
             {/* 弹窗 */}
             {visible && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-                    <div className="w-[760px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[760px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题 */}
                         <div className="flex items-center justify-between mb-3">
                             <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
@@ -296,6 +296,7 @@ export default function NotifyTargets() {
                         </div>
 
                         {/* 表单 */}
+                        <div className="modal-body flex-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                                 <LabeledInput
@@ -316,13 +317,12 @@ export default function NotifyTargets() {
 
                             {/* 中文注释：通知方式（当编辑且 verified=true 时禁用） */}
                             <div>
-                                <label className="block mb-2 text-xs text-gray-500">通知方式</label>
+                                <label className="block ui-label">通知方式</label>
                                 <select
                                     value={form.notifyType}
                                     onChange={(e) => setForm({...form, notifyType: e.target.value})}
                                     disabled={isEdit && !!form.verified} // ⭐ 禁用条件
-                                    className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500
-      ${isEdit && form.verified ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-300'}`}
+                                    className="ui-field"
                                 >
                                     <option value="">请选择</option>
                                     <option value="EMAIL">EMAIL</option>
@@ -337,7 +337,7 @@ export default function NotifyTargets() {
 
                             {/* 中文注释：通知方式内容（当编辑且 verified=true 时禁用） */}
                             <div>
-                                <label className="block mb-2 text-xs text-gray-500">通知方式内容</label>
+                                <label className="block ui-label">通知方式内容</label>
                                 <input
                                     value={form.notifyTypeContent}
                                     onChange={(e) => setForm({ ...form, notifyTypeContent: e.target.value })}
@@ -345,8 +345,7 @@ export default function NotifyTargets() {
                                     placeholder={form.notifyType?.toUpperCase() === 'EMAIL' ? 'user@example.com' :
                                         form.notifyType?.toUpperCase() === 'PHONE' ? '11位手机号' :
                                             form.notifyType?.toUpperCase() === 'NTFY' ? 'Authorization: Bearer TOKEN' : '手机号/邮箱/Hook 等'}
-                                    className={`w-full px-3 py-2 rounded-lg border focus:outline-none focus:ring-2 focus:ring-blue-500
-      ${isEdit && form.verified ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'border-gray-300'}`}
+                                    className="ui-field"
                                 />
                                 {(isEdit && form.verified) && (
                                     <div className="text-xs text-gray-400 mt-1">该通知对象已校验，通知方式内容不可修改</div>
@@ -354,11 +353,11 @@ export default function NotifyTargets() {
                             </div>
 
                             <div>
-                                <label className="block mb-2 text-xs text-gray-500">是否启用</label>
+                                <label className="block ui-label">是否启用</label>
                                 <select
                                     value={form.disabled ? '1' : '0'}
                                     onChange={(e) => setForm({...form, disabled: e.target.value === '1'})}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="ui-field"
                                 >
                                     <option value="0">启用</option>
                                     <option value="1">禁用</option>
@@ -388,6 +387,7 @@ export default function NotifyTargets() {
                                     placeholder="例如：仅在高优先级任务失败时通知"
                                 />
                             </div>
+                        </div>
                         </div>
 
                         {/* 底部按钮 */}

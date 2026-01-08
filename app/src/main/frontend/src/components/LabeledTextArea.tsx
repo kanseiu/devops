@@ -8,27 +8,14 @@ export default function LabeledTextArea(props: {
     const { label, value, onChange, placeholder, rows = 6 } = props;
 
     return (
-        <label style={{ display: 'block', minWidth: 0 }}>
-            <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>{label}</div>
+        <label className="block min-w-0">
+            <div className="ui-label">{label}</div>
             <textarea
                 value={value ?? ''}
                 onChange={(e) => onChange(e.target.value)}
                 placeholder={placeholder}
                 rows={rows}
-                style={{
-                    width: '100%',
-                    // ★ 同样加这里
-                    boxSizing: 'border-box',
-                    maxWidth: '100%',
-
-                    padding: '8px 10px',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 6,
-                    resize: 'vertical',
-                    background: '#ffffff',
-                    color: '#0f172a',
-                    outline: 'none',
-                }}
+                className="ui-field resize-y"
             />
         </label>
     );

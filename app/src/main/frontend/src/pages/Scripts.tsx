@@ -150,7 +150,7 @@ export default function DevScripts() {
 
             {/* 主体 */}
             <main className="flex-1 overflow-y-auto">
-            <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+                <div className="mx-auto max-w-6xl px-4 py-6 space-y-6 page-content">
                     {/* 操作区 */}
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-500">
@@ -170,12 +170,12 @@ export default function DevScripts() {
                     {loading && <div className="text-sm text-gray-500">加载中...</div>}
 
                     {!loading && list.length === 0 && (
-                        <div className="bg-white rounded-2xl shadow-card p-8 text-center text-gray-500">
+                        <div className="bg-white border border-gray-200 rounded-2xl shadow-card p-8 text-center text-gray-500">
                             暂无数据
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
                         {list.map((row) => (
                             <div
                                 key={row.id}
@@ -252,8 +252,8 @@ export default function DevScripts() {
 
             {/* 弹窗 */}
             {visible && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-                    <div className="w-[760px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[760px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题行 */}
                         <div className="flex items-center justify-between mb-3">
                             <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
@@ -266,6 +266,7 @@ export default function DevScripts() {
                         </div>
 
                         {/* 表单 */}
+                        <div className="modal-body flex-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             <div>
                                 <LabeledInput
@@ -330,6 +331,7 @@ export default function DevScripts() {
                                     rows={14}
                                 />
                             </div>
+                        </div>
                         </div>
 
                         <div className="mt-4 flex justify-end gap-2">

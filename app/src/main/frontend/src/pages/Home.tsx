@@ -164,9 +164,9 @@ export default function Home() {
 
             {/* 中间主内容区域：flex-1 + overflow-y-auto，只有这里滚动 */}
             <main className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+                <div className="mx-auto max-w-6xl px-4 py-8 space-y-8 page-content">
                     {/* ✅ 功能入口卡片：右上角加入数量徽标 */}
-                    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
+                    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch stagger">
                         {items.map((it) => {
                             // 中文注释：从 stat 中取对应数量
                             const count =
@@ -180,7 +180,7 @@ export default function Home() {
                                 <Link
                                     key={it.to}
                                     to={it.to}
-                                    className="relative group bg-white rounded-2xl shadow-card hover:shadow-cardHover transition p-6 flex flex-col h-full"
+                                    className="relative group bg-white border border-gray-200 rounded-2xl shadow-card hover:shadow-cardHover transition p-6 flex flex-col h-full"
                                 >
                                     {/* 右上角数量徽标 */}
                                     <span
@@ -208,7 +208,7 @@ export default function Home() {
                             <h2 className="text-base font-semibold">今日失败任务</h2>
                             <button
                                 onClick={loadTodayFail}
-                                className="action-btn px-3 py-1.5 rounded-lg text-sm border border-gray-200 bg-white hover:bg-gray-50"
+                                className="action-btn px-3 py-1.5 rounded-full text-sm border border-gray-200 bg-white hover:bg-gray-50"
                             >
                                 刷新
                             </button>
@@ -285,8 +285,8 @@ export default function Home() {
 
             {/* 日志详情弹窗（与之前一致） */}
             {detailVisible && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-                    <div className="w-[900px] max-w-[96vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[900px] max-w-[96vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题栏 */}
                         <div className="flex items-center justify-between mb-3">
                             <div className="font-semibold">日志详情 {detail?.id ? `#${detail.id}` : ''}</div>
@@ -298,12 +298,13 @@ export default function Home() {
                         </div>
 
                         {/* 内容 */}
+                        <div className="modal-body flex-1">
                         {detailLoading ? (
                             <div className="text-sm text-gray-500">加载中...</div>
                         ) : !detail ? (
                             <div className="text-sm text-gray-500">未找到日志</div>
                         ) : (
-                            <div className="space-y-3 max-h-[72vh] overflow-auto pr-1">
+                            <div className="space-y-3">
                                 {/* 基本信息 */}
                                 <div className="flex flex-wrap items-center gap-2 text-sm">
                                     <span className="font-semibold">#{detail.id}</span>
@@ -366,6 +367,7 @@ export default function Home() {
                                 </details>
                             </div>
                         )}
+                        </div>
 
                         {/* 底部 */}
                         <div className="mt-4 text-right">
@@ -386,7 +388,7 @@ export default function Home() {
 // 中文注释：统计卡片
 function StatCard({label, value}: { label: string; value: number }) {
     return (
-        <div className="bg-white rounded-2xl shadow-card p-5">
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-card p-5">
             <div className="text-sm text-gray-500">{label}</div>
             <div className="mt-2 text-2xl font-bold">{value}</div>
         </div>

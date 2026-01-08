@@ -198,7 +198,7 @@ export default function Servers() {
 
             {/* 主体容器 */}
             <main className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-6xl px-4 py-6 space-y-6">
+                <div className="mx-auto max-w-6xl px-4 py-6 space-y-6 page-content">
                     {/* 操作区 */}
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-gray-500">
@@ -220,12 +220,12 @@ export default function Servers() {
                     )}
 
                     {!loading && list.length === 0 && (
-                        <div className="bg-white rounded-2xl shadow-card p-8 text-center text-gray-500">
+                        <div className="bg-white border border-gray-200 rounded-2xl shadow-card p-8 text-center text-gray-500">
                             暂无数据
                         </div>
                     )}
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
                         {list.map((s) => (
                             <div key={s.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition">
                                 <div className="font-semibold mb-1">
@@ -267,8 +267,8 @@ export default function Servers() {
 
             {/* 弹窗 */}
             {visible && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-                    <div className="w-[720px] max-w-[94vw] bg-white rounded-2xl shadow-2xl p-4">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[720px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题行 */}
                         <div className="flex items-center justify-between mb-3">
                             <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
@@ -282,6 +282,7 @@ export default function Servers() {
                         </div>
 
                         {/* 表单网格 */}
+                        <div className="modal-body flex-1">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {/* 中文注释：LabeledInput/LabeledTextArea 自带布局，这里仅控制外层间距 */}
                             <div>
@@ -304,11 +305,11 @@ export default function Servers() {
 
                             {/* 鉴权类型 */}
                             <label className="block">
-                                <div className="text-xs text-gray-500 mb-1">鉴权类型</div>
+                                <div className="ui-label">鉴权类型</div>
                                 <select
                                     value={form.authType}
                                     onChange={(e) => setForm({ ...form, authType: e.target.value as Server['authType'] })}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="ui-field"
                                 >
                                     <option value="password">password</option>
                                     <option value="privateKey">privateKey</option>
@@ -363,6 +364,7 @@ export default function Servers() {
                                     placeholder="echo ping"
                                 />
                             </div>
+                        </div>
                         </div>
 
                         {/* 底部按钮 */}

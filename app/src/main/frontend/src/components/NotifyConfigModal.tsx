@@ -182,8 +182,8 @@ export default function NotifyConfigModal({
     // ============ UI ============
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45">
-            <div className="w-[980px] max-w-[96vw] bg-white rounded-2xl shadow-2xl p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+            <div className="w-[980px] max-w-[96vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                 {/* 标题栏 */}
                 <div className="flex items-center justify-between mb-4">
                     <div className="font-semibold">{isEdit ? '编辑通知配置' : '新增通知配置'}</div>
@@ -203,6 +203,7 @@ export default function NotifyConfigModal({
                     </div>
                 </div>
 
+                <div className="modal-body flex-1">
                 {/* 上半区：编辑表单 */}
                 <section className="bg-gray-50 border border-gray-200 rounded-2xl p-4 mb-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
@@ -227,7 +228,7 @@ export default function NotifyConfigModal({
                                 <select
                                     value={editing.devNotifyTargetId || 0}
                                     onChange={e => setEditing({...editing, devNotifyTargetId: Number(e.target.value)})}
-                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    className="ui-field"
                                 >
                                     <option value={0}>请选择通知对象</option>
                                     {targets.map(t => (
@@ -245,7 +246,7 @@ export default function NotifyConfigModal({
                             <select
                                 value={editing.disabled ? '1' : '0'}
                                 onChange={e => setEditing({...editing, disabled: e.target.value === '1'})}
-                                className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                className="ui-field"
                             >
                                 <option value="0">启用</option>
                                 <option value="1">禁用</option>
@@ -381,6 +382,7 @@ export default function NotifyConfigModal({
                         )}
                     </div>
                 </section>
+                </div>
             </div>
         </div>
     );

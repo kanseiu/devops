@@ -16,7 +16,7 @@ export default function Login() {
 
     return (
         <div className="app-shell min-h-screen flex items-center justify-center px-4">
-            <div className="w-[420px] max-w-[92vw] bg-white border border-gray-200 rounded-2xl shadow-card p-6">
+            <div className="w-[420px] max-w-[92vw] bg-white border border-gray-200 rounded-2xl shadow-card p-6 page-content">
                 <div className="mb-4">
                     <div className="text-xs uppercase tracking-[0.2em] text-gray-400">kanseiu</div>
                     <div className="text-lg font-semibold text-gray-800">内部运维工具</div>

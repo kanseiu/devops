@@ -1,8 +1,8 @@
 import {Link, useLocation} from 'react-router-dom';
 
-type NavItem = { label: string; to: string };
+export type NavItem = { label: string; to: string };
 
-const NAV_ITEMS: NavItem[] = [
+export const NAV_ITEMS: NavItem[] = [
     { label: '首页', to: '/' },
     { label: '服务器', to: '/servers' },
     { label: '脚本', to: '/scripts' },
@@ -15,20 +15,18 @@ type AppNavProps = {
     className?: string;
     linkClassName?: string;
     activeClassName?: string;
-    separatorClassName?: string;
 };
 
 export default function AppNav({
-    className = 'text-sm text-slate-600',
-    linkClassName = 'hover:text-slate-900 transition',
-    activeClassName = 'text-slate-900 font-semibold underline underline-offset-4 cursor-not-allowed',
-    separatorClassName = 'mx-2 text-slate-300',
+    className = 'flex flex-nowrap items-center justify-center gap-2 text-base text-slate-600',
+    linkClassName = 'px-4 py-2 rounded-full whitespace-nowrap hover:text-slate-900 hover:bg-slate-100 transition',
+    activeClassName = 'px-4 py-2 rounded-full whitespace-nowrap bg-emerald-600 text-white shadow-sm cursor-not-allowed',
 }: AppNavProps) {
     const location = useLocation();
 
     return (
         <nav className={className}>
-            {NAV_ITEMS.map((item, idx) => {
+            {NAV_ITEMS.map((item) => {
                 const isCurrent = location.pathname === item.to;
                 return (
                     <span key={item.to}>
@@ -41,7 +39,6 @@ export default function AppNav({
                                 {item.label}
                             </Link>
                         )}
-                        {idx < NAV_ITEMS.length - 1 && <span className={separatorClassName}>·</span>}
                     </span>
                 );
             })}
