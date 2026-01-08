@@ -18,9 +18,9 @@ type AppNavProps = {
 };
 
 export default function AppNav({
-    className = 'flex flex-nowrap items-center justify-center gap-2 text-base text-slate-600',
-    linkClassName = 'px-4 py-2 rounded-full whitespace-nowrap hover:text-slate-900 hover:bg-slate-100 transition',
-    activeClassName = 'px-4 py-2 rounded-full whitespace-nowrap bg-emerald-600 text-white shadow-sm cursor-not-allowed',
+    className = 'flex flex-nowrap items-center justify-center gap-3 text-base text-slate-600 h-10',
+    linkClassName = 'inline-flex items-center justify-center h-10 px-4 rounded-full whitespace-nowrap hover:text-slate-900 hover:bg-slate-100 transition',
+    activeClassName = 'inline-flex items-center justify-center h-10 px-4 rounded-full whitespace-nowrap font-semibold text-slate-900 cursor-not-allowed',
 }: AppNavProps) {
     const location = useLocation();
 

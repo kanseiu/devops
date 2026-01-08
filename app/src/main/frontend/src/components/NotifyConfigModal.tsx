@@ -227,7 +227,14 @@ export default function NotifyConfigModal({
                             ) : (
                                 <select
                                     value={editing.devNotifyTargetId || 0}
-                                    onChange={e => setEditing({...editing, devNotifyTargetId: Number(e.target.value)})}
+                                    onChange={e => {
+                                        const nextId = Number(e.target.value);
+                                        setEditing(prev => ({
+                                            ...prev,
+                                            devNotifyTargetId: nextId,
+                                            notifyOnStatus: prev.notifyOnStatus || ALL_STATUS.join(','),
+                                        }));
+                                    }}
                                     className="ui-field"
                                 >
                                     <option value={0}>请选择通知对象</option>

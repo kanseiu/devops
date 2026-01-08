@@ -1,5 +1,6 @@
 // 中文注释：定时任务维护（Hutool Cron）- Tailwind 统一风格 + jobType 区分 SHELL/SQL
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {api} from '@/utils/api';
 import {showGeekOverlay} from '@/components/toast';
 import LabeledInput from '@/components/LabeledInput';
@@ -49,6 +50,12 @@ type DevCronJobLog = {
     errorText?: string | null;
 };
 
+type ActionItem = {
+    key: string;
+    label: string;
+    onClick: () => void;
+};
+
 // 表单初始值（jobType 无默认，必须选）
 const emptyForm: JobItem = {
     jobName: '',
@@ -86,6 +93,8 @@ export default function HutoolCronJobs() {
     const [logs, setLogs] = useState<DevCronJobLog[]>([]);
     const [notifyModalJobId, setNotifyModalJobId] = useState<number | null>(null);
     const confirm = useConfirm();
+    const [cronPreview, setCronPreview] = useState<string[]>([]);
+    const [cronPreviewError, setCronPreviewError] = useState<string | null>(null);
 
     // ========= 工具：时间格式化 =========
     const fmtTime = (s?: string | number) => {
@@ -312,6 +321,34 @@ export default function HutoolCronJobs() {
         return () => window.removeEventListener('keydown', handler);
     }, [logVisible]);
 
+    // Cron 预览（仅在弹窗打开时生效）
+    useEffect(() => {
+        if (!visible) {
+            setCronPreview([]);
+            setCronPreviewError(null);
+            return;
+        }
+        const expr = form.cronExpr?.trim();
+        if (!expr) {
+            setCronPreview([]);
+            setCronPreviewError('Cron 表达式不能为空');
+            return;
+        }
+        const id = window.setTimeout(async () => {
+            try {
+                const data = await api.get<{ times?: string[]; error?: string }>(
+                    '/api/cron/preview?expr=' + encodeURIComponent(expr) + '&count=4'
+                );
+                setCronPreview(Array.isArray(data?.times) ? data.times : []);
+                setCronPreviewError(data?.error || null);
+            } catch {
+                setCronPreview([]);
+                setCronPreviewError('Cron 表达式无效');
+            }
+        }, 350);
+        return () => window.clearTimeout(id);
+    }, [form.cronExpr, visible]);
+
     // ========= UI =========
     return (
         <div className="app-shell app-shell--fade flex flex-col h-screen">
@@ -418,29 +455,50 @@ export default function HutoolCronJobs() {
                                 )}
 
                                 {/* 操作按钮 */}
-                                <div className="mt-auto flex flex-wrap items-center justify-between gap-2">
-                                    <button onClick={() => remove(row)}
-                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700">删除
+                                <div className="mt-auto flex items-center gap-2">
+                                    <button
+                                        onClick={() => remove(row)}
+                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
+                                    >
+                                        删除
                                     </button>
-                                    <div className="flex flex-wrap gap-2 justify-end">
-                                        <button onClick={() => runOnceStream(row)}
-                                                className="px-3 py-1.5 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">执行一次
+                                    <div className="min-w-0 flex-1 flex justify-end items-center gap-2">
+                                        <button
+                                            onClick={() => runOnceStream(row)}
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            执行一次
                                         </button>
-                                        <button onClick={() => openLogs(row)}
-                                                className="px-3 py-1.5 rounded-lg text-white text-sm bg-slate-600 hover:bg-slate-700">日志
+                                        <button
+                                            onClick={() => openLogs(row)}
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-slate-600 hover:bg-slate-700"
+                                        >
+                                            日志
                                         </button>
-                                        <button onClick={() => openNotifyConfig(row.id)}
-                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-amber-600 hover:bg-amber-700">通知配置
-                                        </button>
-                                        <button onClick={() => pause(row.id)}
-                                                className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">暂停
-                                        </button>
-                                        <button onClick={() => resume(row.id)}
-                                                className="px-3 py-1.5 rounded-lg text-white text-sm bg-emerald-600 hover:bg-emerald-700">恢复
-                                        </button>
-                                        <button onClick={() => openEdit(row)}
-                                                className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">编辑
-                                        </button>
+                                        <MoreMenu
+                                            actions={[
+                                                {
+                                                    key: 'notify',
+                                                    label: '通知配置',
+                                                    onClick: () => openNotifyConfig(row.id),
+                                                },
+                                                {
+                                                    key: 'pause',
+                                                    label: '暂停',
+                                                    onClick: () => pause(row.id),
+                                                },
+                                                {
+                                                    key: 'resume',
+                                                    label: '恢复',
+                                                    onClick: () => resume(row.id),
+                                                },
+                                                {
+                                                    key: 'edit',
+                                                    label: '编辑',
+                                                    onClick: () => openEdit(row),
+                                                },
+                                            ]}
+                                        />
                                     </div>
                                 </div>
                             </div>
@@ -664,7 +722,7 @@ export default function HutoolCronJobs() {
 
                         {/* 底部：速查 + 操作按钮 */}
                         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                            <CronCheats/>
+                            <CronCheats times={cronPreview} error={cronPreviewError}/>
                             <div className="flex gap-2 justify-end">
                                 <button onClick={() => setVisible(false)}
                                         className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">取消</button>
@@ -693,15 +751,133 @@ export default function HutoolCronJobs() {
     );
 }
 
+function MoreMenu({actions}: { actions: ActionItem[] }) {
+    const menuRef = useRef<HTMLDivElement | null>(null);
+    const buttonRef = useRef<HTMLButtonElement | null>(null);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [menuStyle, setMenuStyle] = useState<{ top: number; left: number } | null>(null);
+
+    useEffect(() => {
+        if (!menuOpen) return;
+        const handler = (event: MouseEvent) => {
+            const target = event.target as Node;
+            if (menuRef.current?.contains(target) || buttonRef.current?.contains(target)) {
+                return;
+            }
+            setMenuOpen(false);
+        };
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                setMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        window.addEventListener('keydown', onKeyDown);
+        return () => {
+            document.removeEventListener('mousedown', handler);
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [menuOpen]);
+
+    useLayoutEffect(() => {
+        if (!menuOpen) {
+            setMenuStyle(null);
+            return;
+        }
+
+        const updatePosition = () => {
+            const button = buttonRef.current;
+            if (!button) return;
+            const rect = button.getBoundingClientRect();
+            const menuWidth = menuRef.current?.offsetWidth ?? 0;
+            const menuHeight = menuRef.current?.offsetHeight ?? 0;
+            const padding = 8;
+            let left = rect.right - menuWidth;
+            left = Math.max(padding, Math.min(left, window.innerWidth - menuWidth - padding));
+            let top = rect.bottom + 8;
+            if (top + menuHeight > window.innerHeight - padding) {
+                top = Math.max(padding, rect.top - menuHeight - 8);
+            }
+            setMenuStyle({top, left});
+        };
+
+        const raf = requestAnimationFrame(updatePosition);
+        const onResize = () => updatePosition();
+        window.addEventListener('resize', onResize);
+        window.addEventListener('scroll', onResize, true);
+        return () => {
+            cancelAnimationFrame(raf);
+            window.removeEventListener('resize', onResize);
+            window.removeEventListener('scroll', onResize, true);
+        };
+    }, [menuOpen]);
+
+    return (
+        <div className="relative">
+            <button
+                ref={buttonRef}
+                onClick={() => setMenuOpen((v) => !v)}
+                className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
+            >
+                更多
+            </button>
+            {menuOpen && createPortal(
+                <div
+                    ref={menuRef}
+                    className="fixed w-36 rounded-xl border border-gray-200 bg-white shadow-card p-1.5 z-[200]"
+                    style={{
+                        top: menuStyle?.top ?? 0,
+                        left: menuStyle?.left ?? 0,
+                        visibility: menuStyle ? 'visible' : 'hidden',
+                    }}
+                >
+                    {actions.map((action) => (
+                        <button
+                            key={action.key}
+                            onClick={() => {
+                                action.onClick();
+                                setMenuOpen(false);
+                            }}
+                            className="w-full text-left px-3 py-2 rounded-lg text-sm text-slate-700 hover:bg-slate-100"
+                        >
+                            {action.label}
+                        </button>
+                    ))}
+                </div>,
+                document.body
+            )}
+        </div>
+    );
+}
+
 // Cron 速查
-function CronCheats() {
+function CronCheats({times, error}: { times: string[]; error: string | null }) {
     return (
         <div className="bg-gray-50 border border-gray-200 rounded-xl p-3 text-xs text-gray-600 leading-6">
-            <div className="font-semibold mb-1 text-gray-700">Cron 速查（Hutool 秒级）</div>
-            <div>每天 15:00：<code className="px-1 border rounded">0 0 15 * * ?</code></div>
-            <div>每 5 分钟：<code className="px-1 border rounded">0 */5 * * * ?</code></div>
-            <div>每小时整点：<code className="px-1 border rounded">0 0 * * * ?</code></div>
-            <div>工作日 9:00：<code className="px-1 border rounded">0 0 9 ? * MON-FRI</code></div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0">
+                    <div className="font-semibold mb-1 text-gray-700">Cron 速查（Hutool 秒级）</div>
+                    <div>每天 15:00：<code className="px-1 border rounded">0 0 15 * * ?</code></div>
+                    <div>每 5 分钟：<code className="px-1 border rounded">0 */5 * * * ?</code></div>
+                    <div>每小时整点：<code className="px-1 border rounded">0 0 * * * ?</code></div>
+                    <div>工作日 9:00：<code className="px-1 border rounded">0 0 9 ? * MON-FRI</code></div>
+                </div>
+                <div className="min-w-[200px]">
+                    <div className="font-semibold mb-1 text-gray-700">下次执行（最近 4 次）</div>
+                    {error ? (
+                        <div className="text-rose-600">{error}</div>
+                    ) : times.length === 0 ? (
+                        <div className="text-gray-400">—</div>
+                    ) : (
+                        <div className="space-y-1">
+                            {times.map((t) => (
+                                <div key={t} className="text-gray-600 font-mono tabular-nums">{t}</div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
         </div>
     );
 }

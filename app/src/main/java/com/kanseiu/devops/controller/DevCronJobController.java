@@ -1,7 +1,9 @@
 package com.kanseiu.devops.controller;
 
-import cn.hutool.Hutool;
 import cn.hutool.core.date.DatePattern;
+import cn.hutool.core.date.DateUtil;
+import cn.hutool.core.util.StrUtil;
+import cn.hutool.cron.pattern.CronPattern;
 import cn.hutool.extra.spring.SpringUtil;
 import com.kanseiu.devops.constant.JobTypeEnum;
 import com.kanseiu.devops.cron.CronScheduler;
@@ -113,6 +115,35 @@ public class DevCronJobController {
     @GetMapping("/status")
     public R<Map<String, Object>> status() {
         return R.ok(cronScheduler.status());
+    }
+
+    // 预览 Cron 未来执行时间
+    @GetMapping("/preview")
+    public R<Map<String, Object>> preview(@RequestParam("expr") String expr,
+                                          @RequestParam(value = "count", defaultValue = "4") int count) {
+        Map<String, Object> data = new HashMap<>();
+        if (StrUtil.isBlank(expr)) {
+            data.put("times", Collections.emptyList());
+            data.put("error", "Cron 表达式不能为空");
+            return R.ok(data);
+        }
+        int size = Math.min(Math.max(count, 1), 10);
+        try {
+            CronPattern cronPattern = new CronPattern(expr.trim());
+            List<String> times = new ArrayList<>(size);
+            Calendar cursor = Calendar.getInstance();
+            for (int i = 0; i < size; i++) {
+                Calendar next = cronPattern.nextMatchAfter(cursor);
+                times.add(new SimpleDateFormat(DatePattern.NORM_DATETIME_PATTERN).format(next.getTime()));
+                cursor = DateUtil.calendar(DateUtil.offsetSecond(next.getTime(), 1));
+            }
+            data.put("times", times);
+            return R.ok(data);
+        } catch (Exception e) {
+            data.put("times", Collections.emptyList());
+            data.put("error", "Cron 表达式无效");
+            return R.ok(data);
+        }
     }
 
     // 暂停单个任务

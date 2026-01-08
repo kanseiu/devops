@@ -66,7 +66,7 @@ export default function AppHeader({title}: AppHeaderProps) {
 
     return (
         <header className="sticky top-0 z-10 bg-white/90 backdrop-blur border-b border-gray-100">
-            <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4">
+            <div className="mx-auto max-w-6xl px-4 py-4 grid grid-cols-[minmax(160px,1fr)_auto_minmax(52px,1fr)] items-center gap-4">
                 <div className="min-w-0 max-w-[46vw]">
                     <div className="text-[11px] uppercase tracking-[0.35em] text-slate-400">kanseiu</div>
                     <h1 className="text-xl font-semibold text-slate-900 truncate">{title}</h1>
