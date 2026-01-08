@@ -33,4 +33,42 @@
             t.CREATE_TIME DESC
     </select>
 
+    <select id="getDailyAgg" resultType="com.kanseiu.devops.model.response.DevCronJobDailyAggRow">
+        SELECT
+            CAST(t.CREATE_TIME AS DATE) AS day_str,
+            t.STATUS AS status,
+            COUNT(1) AS cnt
+        FROM
+            DEV_CRON_JOB_LOG t
+        WHERE
+            t.CREATE_TIME >= #{start}
+        AND
+            t.CREATE_TIME &lt;= #{end}
+        GROUP BY
+            CAST(t.CREATE_TIME AS DATE), t.STATUS
+        ORDER BY
+            day_str
+    </select>
+
+    <select id="getDailyJobAgg" resultType="com.kanseiu.devops.model.response.DevCronJobDailyJobAggRow">
+        SELECT
+            CAST(t.CREATE_TIME AS DATE) AS day_str,
+            t.JOB_ID AS jobId,
+            m.JOB_NAME AS jobName,
+            t.STATUS AS status,
+            COUNT(1) AS cnt
+        FROM
+            DEV_CRON_JOB_LOG t
+        LEFT JOIN
+            DEV_CRON_JOB m ON t.JOB_ID = m.ID
+        WHERE
+            t.CREATE_TIME >= #{start}
+        AND
+            t.CREATE_TIME &lt;= #{end}
+        GROUP BY
+            CAST(t.CREATE_TIME AS DATE), t.JOB_ID, m.JOB_NAME, t.STATUS
+        ORDER BY
+            day_str, t.JOB_ID
+    </select>
+
 </mapper>

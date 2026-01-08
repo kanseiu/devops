@@ -5,6 +5,10 @@ import com.kanseiu.devops.constant.JobLogStatus;
 import com.kanseiu.devops.framework.mail.service.SendEmail;
 import com.kanseiu.devops.mapper.DevCronJobLogMapper;
 import com.kanseiu.devops.model.entity.*;
+import com.kanseiu.devops.model.response.DevCronJobDailyAggRow;
+import com.kanseiu.devops.model.response.DevCronJobDailyJobAggRow;
+import com.kanseiu.devops.model.response.DevCronJobDailyJobStat;
+import com.kanseiu.devops.model.response.DevCronJobDailyStat;
 import com.kanseiu.devops.model.response.DevCronJobLogResp;
 import com.kanseiu.devops.service.business.DevCronJobLogService;
 import com.kanseiu.devops.service.handler.SendNotifyService;
@@ -17,7 +21,11 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 @Slf4j
@@ -36,6 +44,70 @@ public class DevCronJobLogServiceImpl extends ServiceImpl<DevCronJobLogMapper, D
         LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
         LocalDateTime todayEnd = LocalDateTime.of(LocalDate.now(), LocalTime.MAX);
         return this.baseMapper.getFailLogByTime(todayStart, todayEnd);
+    }
+
+    @Override
+    public List<DevCronJobDailyStat> getLast7DaysStats() {
+        LocalDate today = LocalDate.now();
+        LocalDate startDate = today.minusDays(6);
+        LocalDateTime start = startDate.atStartOfDay();
+        LocalDateTime end = LocalDateTime.of(today, LocalTime.MAX);
+
+        Map<String, DevCronJobDailyStat> dayMap = new LinkedHashMap<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+        for (int i = 0; i < 7; i++) {
+            String day = startDate.plusDays(i).format(formatter);
+            dayMap.put(day, new DevCronJobDailyStat(day, 0, 0, new ArrayList<>()));
+        }
+
+        List<DevCronJobDailyAggRow> dailyRows = this.baseMapper.getDailyAgg(start, end);
+        for (DevCronJobDailyAggRow row : dailyRows) {
+            if (row.getDayStr() == null) {
+                continue;
+            }
+            String day = row.getDayStr().format(formatter);
+            DevCronJobDailyStat stat = dayMap.get(day);
+            if (stat == null) {
+                continue;
+            }
+            int count = row.getCnt() == null ? 0 : row.getCnt();
+            if ("SUCCESS".equalsIgnoreCase(row.getStatus())) {
+                stat.setSuccessCount(stat.getSuccessCount() + count);
+            } else {
+                stat.setFailCount(stat.getFailCount() + count);
+            }
+        }
+
+        Map<String, Map<Long, DevCronJobDailyJobStat>> jobMap = new LinkedHashMap<>();
+        List<DevCronJobDailyJobAggRow> jobRows = this.baseMapper.getDailyJobAgg(start, end);
+        for (DevCronJobDailyJobAggRow row : jobRows) {
+            if (row.getDayStr() == null) {
+                continue;
+            }
+            String day = row.getDayStr().format(formatter);
+            if (!dayMap.containsKey(day)) {
+                continue;
+            }
+            Map<Long, DevCronJobDailyJobStat> dayJobs = jobMap.computeIfAbsent(day, k -> new LinkedHashMap<>());
+            Long jobId = row.getJobId();
+            DevCronJobDailyJobStat jobStat = dayJobs.computeIfAbsent(jobId,
+                    k -> new DevCronJobDailyJobStat(jobId, row.getJobName(), 0, 0));
+            int count = row.getCnt() == null ? 0 : row.getCnt();
+            if ("SUCCESS".equalsIgnoreCase(row.getStatus())) {
+                jobStat.setSuccessCount(jobStat.getSuccessCount() + count);
+            } else {
+                jobStat.setFailCount(jobStat.getFailCount() + count);
+            }
+        }
+
+        for (Map.Entry<String, DevCronJobDailyStat> entry : dayMap.entrySet()) {
+            Map<Long, DevCronJobDailyJobStat> dayJobs = jobMap.get(entry.getKey());
+            if (dayJobs != null) {
+                entry.getValue().setJobs(new ArrayList<>(dayJobs.values()));
+            }
+        }
+
+        return new ArrayList<>(dayMap.values());
     }
 
     /** 创建“开始”记录，返回日志ID */

@@ -1,13 +1,9 @@
 // 中文注释：首页（顶部导航 + 中间滚动 + 底部页脚固定可见）
-import {Link} from 'react-router-dom';
-import {Server, FileCode, CalendarCheck, Database, Bell} from 'lucide-react';
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState, type MouseEvent} from 'react';
+import {createPortal} from 'react-dom';
 import {api} from '@/utils/api';
 import AppHeader from '@/components/AppHeader';
 import AppFooter from '@/components/AppFooter';
-
-// ===== 类型定义 =====
-type Stat = { servers: number; scripts: number; jobs: number; databases: number; notifyTargets: number; };
 
 type TodayFailLog = {
     id: number;
@@ -38,10 +34,21 @@ type DevCronJobLogDetail = {
     errorText?: string;
 };
 
-export default function Home() {
-    // ===== 顶部统计 =====
-    const [stat, setStat] = useState<Stat>({servers: 0, scripts: 0, jobs: 0, databases: 0, notifyTargets: 0});
+type JobStat = {
+    jobId: number;
+    jobName: string;
+    successCount: number;
+    failCount: number;
+};
 
+type DayStat = {
+    day: string;
+    successCount: number;
+    failCount: number;
+    jobs: JobStat[];
+};
+
+export default function Home() {
     // ===== 今日失败列表 =====
     const [failList, setFailList] = useState<TodayFailLog[]>([]);
     const [loadingFail, setLoadingFail] = useState(false);
@@ -50,6 +57,11 @@ export default function Home() {
     const [detailVisible, setDetailVisible] = useState(false);
     const [detailLoading, setDetailLoading] = useState(false);
     const [detail, setDetail] = useState<DevCronJobLogDetail | null>(null);
+
+    // ===== 7 天统计 =====
+    const [weeklyStats, setWeeklyStats] = useState<DayStat[]>([]);
+    const [weeklyLoading, setWeeklyLoading] = useState(false);
+    const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
     // 中文注释：时间/时长/状态徽标工具
     const fmtTime = (s?: string | number) => {
@@ -84,25 +96,15 @@ export default function Home() {
         }
     };
 
-    // 中文注释：加载统计
+    // 中文注释：加载 7 天统计
     useEffect(() => {
         (async () => {
+            setWeeklyLoading(true);
             try {
-                const [sv, sc, jb, db, nt] = await Promise.all([
-                    api.get<any[]>('/api/servers/list'),
-                    api.get<any[]>('/api/devScript/list'),
-                    api.get<any[]>('/api/cron/jobs'),
-                    api.get<any[]>('/api/databases/list'),
-                    api.get<any[]>('/api/notifyTarget/list'),
-                ]);
-                setStat({
-                    servers: Array.isArray(sv) ? sv.length : 0,
-                    scripts: Array.isArray(sc) ? sc.length : 0,
-                    jobs: Array.isArray(jb) ? jb.length : 0,
-                    databases: Array.isArray(db) ? db.length : 0,
-                    notifyTargets: Array.isArray(nt) ? nt.length : 0,
-                });
-            } catch {
+                const data = await api.get<DayStat[]>('/api/cron/job/log/summary7days');
+                setWeeklyStats(Array.isArray(data) ? data : []);
+            } finally {
+                setWeeklyLoading(false);
             }
         })();
     }, []);
@@ -146,64 +148,28 @@ export default function Home() {
         return () => window.removeEventListener('keydown', handler);
     }, [detailVisible]);
 
-    // 中文注释：入口卡片
-    // 中文注释：入口卡片配置 —— 保留不变
-    const items = [
-        { to: '/servers',   title: '服务器管理', desc: '集中管理服务器信息，支持 SSH 测试', icon: <Server className="w-6 h-6 text-blue-500" />,   key: 'servers'   as const },
-        { to: '/scripts',   title: '脚本管理',   desc: '维护可复用脚本，支持新增、修改和查看', icon: <FileCode className="w-6 h-6 text-emerald-500" />, key: 'scripts'   as const },
-        { to: '/checks',    title: '任务/检查',  desc: '定时任务调度与执行日志查看',           icon: <CalendarCheck className="w-6 h-6 text-violet-500" />, key: 'jobs'      as const },
-        { to: '/databases', title: '数据库管理', desc: '管理数据库连接信息，支持 JDBC 测试',   icon: <Database className="w-6 h-6 text-amber-500" />,      key: 'databases' as const },
-        { to: '/notifyTargets', title: '通知方式管理', desc: '维护手机号/邮箱/Hook 等并与任务关联', icon: <Bell className="w-6 h-6 text-pink-500" />, key: 'notifyTargets' as const },
-    ] as const;
+    const chartData = useMemo(() => {
+        if (weeklyStats.length > 0) return weeklyStats;
+        const today = new Date();
+        return Array.from({length: 7}).map((_, idx) => {
+            const d = new Date(today);
+            d.setDate(today.getDate() - (6 - idx));
+            const day = d.toISOString().slice(0, 10);
+            return {day, successCount: 0, failCount: 0, jobs: []};
+        });
+    }, [weeklyStats]);
 
     return (
-        // 中文注释：使用 flex 布局撑满视口，高度固定为 100vh；header/footer 固定可见，main 中间区域滚动
+        // 中文注释：使用 flex 布局撑满视口，高度固定为 100vh；header/footer 固定可见
         <div className="app-shell app-shell--fade flex flex-col h-screen">
             {/* 顶部导航（固定高度，始终可见） */}
             <AppHeader title="运维管理平台" />
 
             {/* 中间主内容区域：flex-1 + overflow-y-auto，只有这里滚动 */}
             <main className="flex-1 overflow-y-auto">
-                <div className="mx-auto max-w-6xl px-4 py-8 space-y-8 page-content">
-                    {/* ✅ 功能入口卡片：右上角加入数量徽标 */}
-                    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch stagger">
-                        {items.map((it) => {
-                            // 中文注释：从 stat 中取对应数量
-                            const count =
-                                it.key === 'servers'   ? stat.servers   :
-                                    it.key === 'scripts'   ? stat.scripts   :
-                                        it.key === 'jobs'      ? stat.jobs      :
-                                            it.key === 'databases' ? stat.databases :
-                                                it.key === 'notifyTargets' ? stat.notifyTargets : 0;
-
-                            return (
-                                <Link
-                                    key={it.to}
-                                    to={it.to}
-                                    className="relative group bg-white border border-gray-200 rounded-2xl shadow-card hover:shadow-cardHover transition p-6 flex flex-col h-full"
-                                >
-                                    {/* 右上角数量徽标 */}
-                                    <span
-                                        className="absolute right-4 top-4 text-[11px] leading-none px-2 py-1 rounded-full
-                     bg-gray-100 text-gray-600 border border-gray-200"
-                                        title={`${it.title}数量`}
-                                    >
-          {count}
-        </span>
-
-                                    <div className="mb-4">{it.icon}</div>
-                                    <div className="text-lg font-semibold mb-1">{it.title}</div>
-                                    <div className="text-gray-500 text-sm leading-6 flex-1">{it.desc}</div>
-                                    <div className="mt-4 text-sm text-blue-600 group-hover:translate-x-0.5 transition">
-                                        进入 →
-                                    </div>
-                                </Link>
-                            );
-                        })}
-                    </section>
-
+                <div className="mx-auto max-w-6xl px-4 py-6 flex flex-col gap-6 page-content">
                     {/* 今日失败任务列表（行样式） */}
-                    <section>
+                    <section className="flex flex-col">
                     <div className="flex items-center justify-between mb-3">
                             <h2 className="text-base font-semibold">今日失败任务</h2>
                             <button
@@ -224,8 +190,7 @@ export default function Home() {
                         </div>
 
                         {/* 数据区（白底，内部按行分割，独立滚动） */}
-                        <div className="bg-white rounded-2xl border border-gray-200">
-                            <div className="max-h-[360px] overflow-y-auto divide-y divide-gray-200">
+                        <div className="bg-white rounded-2xl border border-gray-200 max-h-[48vh] overflow-y-auto divide-y divide-gray-200">
                                 {loadingFail && (
                                     <div className="px-3 py-3 text-sm text-gray-500">加载中...</div>
                                 )}
@@ -274,6 +239,35 @@ export default function Home() {
                                         </div>
                                     </div>
                                 ))}
+                            </div>
+                    </section>
+
+                    {/* 近 7 天执行统计 */}
+                    <section className="flex flex-col">
+                        <div className="w-full bg-white border border-gray-200 rounded-2xl shadow-card p-5 flex flex-col">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <div className="text-sm text-gray-500">近 7 天执行统计</div>
+                                    <div className="text-lg font-semibold text-gray-800">成功 / 失败趋势</div>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                    <span className="inline-flex items-center gap-2">
+                                        <i className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                                        成功
+                                    </span>
+                                    <span className="inline-flex items-center gap-2">
+                                        <i className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                                        失败
+                                    </span>
+                                </div>
+                            </div>
+                            <div className="flex-1 min-h-0">
+                                <WeeklyChart
+                                    data={chartData}
+                                    loading={weeklyLoading}
+                                    activeIndex={activeIndex}
+                                    setActiveIndex={setActiveIndex}
+                                />
                             </div>
                         </div>
                     </section>
@@ -385,12 +379,158 @@ export default function Home() {
     );
 }
 
-// 中文注释：统计卡片
-function StatCard({label, value}: { label: string; value: number }) {
+function WeeklyChart({
+    data,
+    loading,
+    activeIndex,
+    setActiveIndex,
+}: {
+    data: DayStat[];
+    loading: boolean;
+    activeIndex: number | null;
+    setActiveIndex: (idx: number | null) => void;
+}) {
+    const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
+    const maxValue = Math.max(
+        1,
+        ...data.map(d => Math.max(d.successCount, d.failCount))
+    );
+    const points = data.map((d, idx) => ({
+        x: idx,
+        success: d.successCount,
+        fail: d.failCount,
+    }));
+    const labels = data.map(d => d.day.slice(5));
+
+    const handleMove = (e: MouseEvent<HTMLDivElement>) => {
+        const rect = e.currentTarget.getBoundingClientRect();
+        const rawX = e.clientX - rect.left;
+        const rawY = e.clientY - rect.top;
+        const maxIdx = Math.max(data.length - 1, 0);
+        const idx = maxIdx === 0 ? 0 : Math.round((rawX / Math.max(rect.width, 1)) * maxIdx);
+        setActiveIndex(Math.max(0, Math.min(idx, data.length - 1)));
+        const tooltipWidth = 384;
+        const half = tooltipWidth / 2;
+        const x = Math.min(Math.max(e.clientX, half + 12), window.innerWidth - half - 12);
+        const y = Math.max(e.clientY, 140);
+        setTooltipPos({x, y});
+    };
+
+    const active = activeIndex != null ? data[activeIndex] : null;
+
     return (
-        <div className="bg-white border border-gray-200 rounded-2xl shadow-card p-5">
-            <div className="text-sm text-gray-500">{label}</div>
-            <div className="mt-2 text-2xl font-bold">{value}</div>
+        <div
+            className="relative w-full h-full"
+            onMouseMove={handleMove}
+            onMouseLeave={() => {
+                setActiveIndex(null);
+                setTooltipPos(null);
+            }}
+        >
+            <svg className="w-full h-full" viewBox={`0 0 1000 320`} preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="lineSuccess" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#14b8a6" />
+                    </linearGradient>
+                    <linearGradient id="lineFail" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#f43f5e" />
+                        <stop offset="100%" stopColor="#fb7185" />
+                    </linearGradient>
+                </defs>
+                <rect x="0" y="0" width="1000" height="320" fill="#ffffff" />
+                {[0.25, 0.5, 0.75].map((y, i) => (
+                    <line key={i} x1="40" x2="980" y1={40 + (240 * y)} y2={40 + (240 * y)} stroke="#eef2f7" strokeWidth="1" />
+                ))}
+                {(() => {
+                    const denom = Math.max(points.length - 1, 1);
+                    return (
+                        <>
+                            <path
+                                d={buildLinePath(points.map((p, idx) => ({x: 60 + (idx * 880) / denom, y: 280 - (p.success / maxValue) * 220})))}
+                                fill="none"
+                                stroke="url(#lineSuccess)"
+                                strokeWidth="3"
+                            />
+                            <path
+                                d={buildLinePath(points.map((p, idx) => ({x: 60 + (idx * 880) / denom, y: 280 - (p.fail / maxValue) * 220})))}
+                                fill="none"
+                                stroke="url(#lineFail)"
+                                strokeWidth="3"
+                            />
+                            {points.map((p, idx) => {
+                                const x = 60 + (idx * 880) / denom;
+                                const ySuccess = 280 - (p.success / maxValue) * 220;
+                                const yFail = 280 - (p.fail / maxValue) * 220;
+                                const activePoint = activeIndex === idx;
+                                return (
+                                    <g key={idx}>
+                                        <circle cx={x} cy={ySuccess} r={activePoint ? 5 : 4} fill="#10b981" />
+                                        <circle cx={x} cy={yFail} r={activePoint ? 5 : 4} fill="#f43f5e" />
+                                    </g>
+                                );
+                            })}
+                            {labels.map((label, idx) => {
+                                const x = 60 + (idx * 880) / denom;
+                                return (
+                                    <text key={label} x={x} y={305} textAnchor="middle" fontSize="12" fill="#94a3b8">
+                                        {label}
+                                    </text>
+                                );
+                            })}
+                        </>
+                    );
+                })()}
+            </svg>
+            {loading && (
+                <div className="absolute inset-0 flex items-center justify-center text-sm text-gray-400">
+                    加载中...
+                </div>
+            )}
+            {active && tooltipPos && createPortal(
+                <div
+                    className="fixed z-[200] w-96 -translate-x-1/2 -translate-y-full rounded-2xl border border-gray-200 bg-white/95 shadow-card p-4 text-xs text-gray-600 pointer-events-none"
+                    style={{left: tooltipPos.x, top: tooltipPos.y}}
+                >
+                    <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold text-gray-800">{active.day}</div>
+                        <div className="flex items-center gap-3 text-[11px]">
+                            <span className="inline-flex items-center gap-1 text-emerald-600">
+                                <i className="w-2 h-2 rounded-full bg-emerald-500" />
+                                {active.successCount}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-rose-600">
+                                <i className="w-2 h-2 rounded-full bg-rose-500" />
+                                {active.failCount}
+                            </span>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-[minmax(0,1fr)_48px_48px] gap-2 text-[11px] text-gray-500 pb-1 border-b border-gray-100">
+                        <span>任务</span>
+                        <span className="text-emerald-600 text-right">成功</span>
+                        <span className="text-rose-600 text-right">失败</span>
+                    </div>
+                    <div className="space-y-1 max-h-36 overflow-auto pr-1 pt-2">
+                        {active.jobs && active.jobs.length > 0 ? (
+                            active.jobs.map(job => (
+                                <div key={job.jobId} className="grid grid-cols-[minmax(0,1fr)_48px_48px] items-center gap-2">
+                                    <span className="truncate text-gray-700">{job.jobName || `#${job.jobId}`}</span>
+                                    <span className="text-emerald-600 text-right font-mono tabular-nums">{job.successCount}</span>
+                                    <span className="text-rose-600 text-right font-mono tabular-nums">{job.failCount}</span>
+                                </div>
+                            ))
+                        ) : (
+                            <div className="text-gray-400">暂无记录</div>
+                        )}
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
+}
+
+function buildLinePath(points: { x: number; y: number }[]) {
+    if (points.length === 0) return '';
+    return points.map((p, idx) => `${idx === 0 ? 'M' : 'L'}${p.x},${p.y}`).join(' ');
 }

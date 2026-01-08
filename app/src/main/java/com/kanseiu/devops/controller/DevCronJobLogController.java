@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.kanseiu.devops.framework.mail.service.MailService;
 import com.kanseiu.devops.model.R;
 import com.kanseiu.devops.model.entity.DevCronJobLog;
+import com.kanseiu.devops.model.response.DevCronJobDailyStat;
 import com.kanseiu.devops.model.response.DevCronJobLogResp;
 import com.kanseiu.devops.service.business.DevCronJobLogService;
 import com.kanseiu.devops.service.renderer.DevCronJobLogHtmlRenderer;
@@ -45,6 +46,12 @@ public class DevCronJobLogController {
     @GetMapping("todayFail")
     public R<List<DevCronJobLogResp>> todayFailJobLog() {
         return R.ok(devCronJobLogService.getTodayFail());
+    }
+
+    // 最近 7 天执行统计
+    @GetMapping("summary7days")
+    public R<List<DevCronJobDailyStat>> summary7days() {
+        return R.ok(devCronJobLogService.getLast7DaysStats());
     }
 
     // 中文注释：预览接口，返回 text/html，前端可直接打开看样式
