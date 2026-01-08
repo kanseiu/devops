@@ -24,6 +24,12 @@ public class DevCronJobNotifyController {
         return R.ok(devCronJobNotifyService.listByJobId(jobId));
     }
 
+    // 获取全部通知配置（用于使用次数统计）
+    @GetMapping("/listAll")
+    public R<List<DevCronJobNotify>> listAll() {
+        return R.ok(devCronJobNotifyService.list());
+    }
+
     // 获取可以选择的通知对象列表
     @GetMapping("/couldSelectNotifyTarget/{jobId}")
     public R<List<DevNotifyTarget>> couldSelectNotifyTarget(@PathVariable("jobId") Long jobId) {

@@ -39,11 +39,13 @@ const emptyForm: Server = {
 export default function Servers() {
     // 中文注释：列表/提示状态
     const [list, setList] = useState<Server[]>([]);
+    const [usageMap, setUsageMap] = useState<Record<number, number>>({});
     const [loading, setLoading] = useState(false);
 
     // 中文注释：弹窗控制与表单
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<Server>(emptyForm);
+    const [viewOnly, setViewOnly] = useState(false);
     const isEdit = useMemo(() => form.id != null, [form.id]);
     const confirm = useConfirm();
 
@@ -51,8 +53,19 @@ export default function Servers() {
     const load = async () => {
         setLoading(true);
         try {
-            const data = await api.get<Server[]>('/api/servers/list');
+            const [data, jobs] = await Promise.all([
+                api.get<Server[]>('/api/servers/list'),
+                api.get<any[]>('/api/cron/jobs'),
+            ]);
             setList(Array.isArray(data) ? data : []);
+            const map: Record<number, number> = {};
+            (Array.isArray(jobs) ? jobs : []).forEach((job: any) => {
+                const id = Number(job.serverId);
+                if (!Number.isNaN(id) && id > 0) {
+                    map[id] = (map[id] || 0) + 1;
+                }
+            });
+            setUsageMap(map);
         } finally {
             setLoading(false);
         }
@@ -65,6 +78,7 @@ export default function Servers() {
     // 中文注释：打开新增
     const openCreate = () => {
         setForm({ ...emptyForm });
+        setViewOnly(false);
         setVisible(true);
     };
 
@@ -83,6 +97,26 @@ export default function Servers() {
             commandAllowList: s.commandAllowList ?? '',
             defaultTestCmd: s.defaultTestCmd ?? 'echo ping',
         });
+        setViewOnly(false);
+        setVisible(true);
+    };
+
+    // 中文注释：打开详情（只读）
+    const openView = (s: Server) => {
+        setForm({
+            id: s.id,
+            name: s.name ?? '',
+            host: s.host ?? '',
+            port: s.port ?? 22,
+            username: s.username ?? '',
+            authType: (s.authType as any) ?? 'password',
+            passwordEnc: s.passwordEnc ?? '',
+            privateKeyEnc: s.privateKeyEnc ?? '',
+            passphraseEnc: s.passphraseEnc ?? '',
+            commandAllowList: s.commandAllowList ?? '',
+            defaultTestCmd: s.defaultTestCmd ?? 'echo ping',
+        });
+        setViewOnly(true);
         setVisible(true);
     };
 
@@ -227,21 +261,30 @@ export default function Servers() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 stagger">
                         {list.map((s) => (
-                            <div key={s.id} className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition">
+                            <div
+                                key={s.id}
+                                className="relative bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition"
+                                onDoubleClick={() => openView(s)}
+                            >
                                 <div className="font-semibold mb-1">
-                                    #{s.id} {s.name}
+                                    {s.name}
                                 </div>
                                 <div className="text-xs text-gray-500 mb-3">
                                     {s.username}@{s.host}:{s.port} — auth={s.authType}
                                 </div>
-                                <div className="mt-auto flex items-center justify-between gap-2">
-                                    <button
-                                        onClick={() => remove(s)}
-                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
-                                    >
-                                        删除
-                                    </button>
-                                    <div className="flex items-center gap-2">
+                                <div className="mt-auto grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                                    <div className="justify-self-start">
+                                        <button
+                                            onClick={() => remove(s)}
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
+                                        >
+                                            删除
+                                        </button>
+                                    </div>
+                                    <div className="justify-self-center text-sm font-semibold text-emerald-700">
+                                        使用 {usageMap[s.id || 0] ?? 0}
+                                    </div>
+                                    <div className="justify-self-end flex items-center gap-2">
                                         <button
                                             onClick={() => test(s.id)}
                                             className="px-3 py-1.5 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
@@ -287,20 +330,20 @@ export default function Servers() {
                             {/* 中文注释：LabeledInput/LabeledTextArea 自带布局，这里仅控制外层间距 */}
                             <div>
                                 <LabeledInput label="显示名" value={form.name}
-                                              onChange={(v) => setForm({ ...form, name: v })} />
+                                              onChange={(v) => setForm({ ...form, name: v })} disabled={viewOnly} />
                             </div>
                             <div>
                                 <LabeledInput label="主机/IP" value={form.host}
                                               onChange={(v) => setForm({ ...form, host: v })}
-                                              disabled={isEdit} />
+                                              disabled={isEdit || viewOnly} />
                             </div>
                             <div>
                                 <LabeledInput label="SSH 端口" type="number" value={form.port}
-                                              onChange={(v) => setForm({ ...form, port: v as any })} />
+                                              onChange={(v) => setForm({ ...form, port: v as any })} disabled={viewOnly} />
                             </div>
                             <div>
                                 <LabeledInput label="用户名" value={form.username}
-                                              onChange={(v) => setForm({ ...form, username: v })} />
+                                              onChange={(v) => setForm({ ...form, username: v })} disabled={viewOnly} />
                             </div>
 
                             {/* 鉴权类型 */}
@@ -310,6 +353,7 @@ export default function Servers() {
                                     value={form.authType}
                                     onChange={(e) => setForm({ ...form, authType: e.target.value as Server['authType'] })}
                                     className="ui-field"
+                                    disabled={viewOnly}
                                 >
                                     <option value="password">password</option>
                                     <option value="privateKey">privateKey</option>
@@ -319,7 +363,7 @@ export default function Servers() {
                             {form.authType === 'password' ? (
                                 <div>
                                     <LabeledInput label="密码" type="text" value={form.passwordEnc}
-                                                  onChange={(v) => setForm({ ...form, passwordEnc: v })} />
+                                                  onChange={(v) => setForm({ ...form, passwordEnc: v })} disabled={viewOnly} />
                                 </div>
                             ) : (
                                 <>
@@ -331,6 +375,7 @@ export default function Servers() {
                                             onChange={(v) => setForm({ ...form, privateKeyEnc: v })}
                                             placeholder={'-----BEGIN OPENSSH PRIVATE KEY-----\n...'}
                                             rows={10}
+                                            disabled={viewOnly}
                                         />
                                     </div>
                                     <div className="md:col-span-2">
@@ -339,6 +384,7 @@ export default function Servers() {
                                             type="text"
                                             value={form.passphraseEnc}
                                             onChange={(v) => setForm({ ...form, passphraseEnc: v })}
+                                            disabled={viewOnly}
                                         />
                                     </div>
                                 </>
@@ -352,6 +398,7 @@ export default function Servers() {
                                     onChange={(v) => setForm({ ...form, commandAllowList: v })}
                                     placeholder={'^echo\\s+ping$\n^uname(\\s+-a)?$'}
                                     rows={6}
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -362,6 +409,7 @@ export default function Servers() {
                                     value={form.defaultTestCmd}
                                     onChange={(v) => setForm({ ...form, defaultTestCmd: v })}
                                     placeholder="echo ping"
+                                    disabled={viewOnly}
                                 />
                             </div>
                         </div>
@@ -373,14 +421,16 @@ export default function Servers() {
                                 onClick={() => setVisible(false)}
                                 className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
                             >
-                                取消
+                                {viewOnly ? '关闭' : '取消'}
                             </button>
-                            <button
-                                onClick={save}
-                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
-                            >
-                                {isEdit ? '保存' : '创建'}
-                            </button>
+                            {!viewOnly && (
+                                <button
+                                    onClick={save}
+                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                >
+                                    {isEdit ? '保存' : '创建'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

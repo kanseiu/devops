@@ -41,11 +41,13 @@ const emptyForm: NotifyTarget = {
 export default function NotifyTargets() {
     // 中文注释：列表与加载
     const [list, setList] = useState<NotifyTarget[]>([]);
+    const [usageMap, setUsageMap] = useState<Record<number, number>>({});
     const [loading, setLoading] = useState(false);
 
     // 中文注释：弹窗与表单
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<NotifyTarget>(emptyForm);
+    const [viewOnly, setViewOnly] = useState(false);
     const isEdit = useMemo(() => form.id != null, [form.id]);
     const confirm = useConfirm();
 
@@ -53,8 +55,19 @@ export default function NotifyTargets() {
     const load = async () => {
         setLoading(true);
         try {
-            const data = await api.get<NotifyTarget[]>('/api/notifyTarget/list');
+            const [data, notifyConfigs] = await Promise.all([
+                api.get<NotifyTarget[]>('/api/notifyTarget/list'),
+                api.get<any[]>('/api/cronJobNotify/listAll'),
+            ]);
             setList(Array.isArray(data) ? data : []);
+            const map: Record<number, number> = {};
+            (Array.isArray(notifyConfigs) ? notifyConfigs : []).forEach((cfg: any) => {
+                const id = Number(cfg.devNotifyTargetId);
+                if (!Number.isNaN(id) && id > 0) {
+                    map[id] = (map[id] || 0) + 1;
+                }
+            });
+            setUsageMap(map);
         } finally {
             setLoading(false);
         }
@@ -66,6 +79,7 @@ export default function NotifyTargets() {
     // 中文注释：打开新增
     const openCreate = () => {
         setForm({...emptyForm});
+        setViewOnly(false);
         setVisible(true);
     };
 
@@ -81,7 +95,27 @@ export default function NotifyTargets() {
             verified: !!row.verified,
             descText: row.descText ?? '',
         });
+        setViewOnly(false);
         setVisible(true);
+    };
+
+    const openView = (row: NotifyTarget) => {
+        setForm({
+            id: row.id,
+            name: row.name ?? '',
+            username: row.username ?? '',
+            notifyType: row.notifyType ?? '',
+            notifyTypeContent: row.notifyTypeContent ?? '',
+            disabled: !!row.disabled,
+            verified: !!row.verified,
+            descText: row.descText ?? '',
+        });
+        setViewOnly(true);
+        setVisible(true);
+    };
+    const closeModal = () => {
+        setVisible(false);
+        setViewOnly(false);
     };
 
     // 中文注释：校验
@@ -159,7 +193,7 @@ export default function NotifyTargets() {
         const handler = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 e.preventDefault();
-                setVisible(false);
+                closeModal();
             }
         };
         window.addEventListener('keydown', handler);
@@ -211,12 +245,13 @@ export default function NotifyTargets() {
                         {list.map(row => (
                             <div
                                 key={row.id}
-                                className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition"
+                                onDoubleClick={() => openView(row)}
+                                className="relative bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition"
                             >
                                 {/* 标题 */}
                                 <div className="flex items-center justify-between mb-2">
                                     <div className="font-semibold text-gray-800">
-                                        #{row.id} {row.name}
+                                        {row.name}
                                     </div>
                                     <span className="text-[11px] px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100">
                                         {row.notifyType || '—'}
@@ -255,14 +290,19 @@ export default function NotifyTargets() {
                                 </div>
 
                                 {/* 操作 */}
-                                <div className="flex items-center justify-between gap-2">
-                                    <button
-                                        onClick={() => remove(row)}
-                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
-                                    >
-                                        删除
-                                    </button>
-                                    <div className="flex items-center gap-2">
+                                <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                                    <div className="justify-self-start">
+                                        <button
+                                            onClick={() => remove(row)}
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
+                                        >
+                                            删除
+                                        </button>
+                                    </div>
+                                    <div className="justify-self-center text-sm font-semibold text-emerald-700">
+                                        使用 {usageMap[row.id || 0] ?? 0}
+                                    </div>
+                                    <div className="justify-self-end flex items-center gap-2">
                                         <button
                                             onClick={() => openEdit(row)}
                                             className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
@@ -287,9 +327,9 @@ export default function NotifyTargets() {
                     <div className="w-[760px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题 */}
                         <div className="flex items-center justify-between mb-3">
-                            <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
+                            <div className="font-semibold">{viewOnly ? '详情' : isEdit ? '编辑' : '新建'}</div>
                             <button
-                                onClick={() => setVisible(false)}
+                                onClick={closeModal}
                                 className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50"
                             >×
                             </button>
@@ -304,6 +344,7 @@ export default function NotifyTargets() {
                                     value={form.name}
                                     onChange={(v) => setForm({...form, name: v})}
                                     placeholder="如：运维同学-张三"
+                                    disabled={viewOnly}
                                 />
                             </div>
                             <div>
@@ -312,6 +353,7 @@ export default function NotifyTargets() {
                                     value={form.username}
                                     onChange={(v) => setForm({...form, username: v})}
                                     placeholder="如：zhangsan"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -321,7 +363,7 @@ export default function NotifyTargets() {
                                 <select
                                     value={form.notifyType}
                                     onChange={(e) => setForm({...form, notifyType: e.target.value})}
-                                    disabled={isEdit && !!form.verified} // ⭐ 禁用条件
+                                    disabled={viewOnly || (isEdit && !!form.verified)} // ⭐ 禁用条件
                                     className="ui-field"
                                 >
                                     <option value="">请选择</option>
@@ -341,7 +383,7 @@ export default function NotifyTargets() {
                                 <input
                                     value={form.notifyTypeContent}
                                     onChange={(e) => setForm({ ...form, notifyTypeContent: e.target.value })}
-                                    disabled={isEdit && !!form.verified} // ⭐ 禁用条件
+                                    disabled={viewOnly || (isEdit && !!form.verified)} // ⭐ 禁用条件
                                     placeholder={form.notifyType?.toUpperCase() === 'EMAIL' ? 'user@example.com' :
                                         form.notifyType?.toUpperCase() === 'PHONE' ? '11位手机号' :
                                             form.notifyType?.toUpperCase() === 'NTFY' ? 'Authorization: Bearer TOKEN' : '手机号/邮箱/Hook 等'}
@@ -357,6 +399,7 @@ export default function NotifyTargets() {
                                 <select
                                     value={form.disabled ? '1' : '0'}
                                     onChange={(e) => setForm({...form, disabled: e.target.value === '1'})}
+                                    disabled={viewOnly}
                                     className="ui-field"
                                 >
                                     <option value="0">启用</option>
@@ -385,6 +428,7 @@ export default function NotifyTargets() {
                                     onChange={(v) => setForm({...form, descText: v})}
                                     rows={3}
                                     placeholder="例如：仅在高优先级任务失败时通知"
+                                    disabled={viewOnly}
                                 />
                             </div>
                         </div>
@@ -393,17 +437,19 @@ export default function NotifyTargets() {
                         {/* 底部按钮 */}
                         <div className="mt-4 text-right">
                             <button
-                                onClick={() => setVisible(false)}
+                                onClick={closeModal}
                                 className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50 mr-2"
                             >
-                                取消
+                                {viewOnly ? '关闭' : '取消'}
                             </button>
-                            <button
-                                onClick={save}
-                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
-                            >
-                                {isEdit ? '保存' : '创建'}
-                            </button>
+                            {!viewOnly && (
+                                <button
+                                    onClick={save}
+                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                >
+                                    {isEdit ? '保存' : '创建'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

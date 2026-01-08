@@ -31,10 +31,13 @@ const emptyForm: DevScript = {
 
 export default function DevScripts() {
     const [list, setList] = useState<DevScript[]>([]);
+    const [usageMap, setUsageMap] = useState<Record<string, number>>({});
     const [loading, setLoading] = useState(false);
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<DevScript>(emptyForm);
+    const [viewOnly, setViewOnly] = useState(false);
     const isEdit = useMemo(() => form.id != null, [form.id]);
     const confirm = useConfirm();
 
@@ -47,12 +50,54 @@ export default function DevScripts() {
             return String(s);
         }
     };
+    const copyScript = async (content?: string, key?: string) => {
+        const text = content ?? '';
+        try {
+            await navigator.clipboard.writeText(text);
+            if (key) {
+                setCopiedKey(key);
+                setTimeout(() => {
+                    setCopiedKey(prev => (prev === key ? null : prev));
+                }, 1200);
+            }
+        } catch {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            if (ok && key) {
+                setCopiedKey(key);
+                setTimeout(() => {
+                    setCopiedKey(prev => (prev === key ? null : prev));
+                }, 1200);
+            }
+            if (!ok) {
+                alert('复制失败，请手动复制');
+            }
+        }
+    };
 
     const load = async () => {
         setLoading(true);
         try {
-            const data = await api.get<DevScript[]>('/api/devScript/list');
+            const [data, jobs] = await Promise.all([
+                api.get<DevScript[]>('/api/devScript/list'),
+                api.get<any[]>('/api/cron/jobs'),
+            ]);
             setList(Array.isArray(data) ? data : []);
+            const map: Record<string, number> = {};
+            (Array.isArray(jobs) ? jobs : []).forEach((job: any) => {
+                const name = String(job.scriptName || '').trim();
+                if (name) {
+                    map[name] = (map[name] || 0) + 1;
+                }
+            });
+            setUsageMap(map);
         } finally {
             setLoading(false);
         }
@@ -64,6 +109,7 @@ export default function DevScripts() {
 
     const openCreate = () => {
         setForm({ ...emptyForm });
+        setViewOnly(false);
         setVisible(true);
     };
 
@@ -77,6 +123,21 @@ export default function DevScripts() {
             disabled: !!row.disabled,
             descText: row.descText ?? '',
         });
+        setViewOnly(false);
+        setVisible(true);
+    };
+
+    const openView = (row: DevScript) => {
+        setForm({
+            id: row.id,
+            scriptName: row.scriptName ?? '',
+            scriptType: row.scriptType,
+            scriptContent: row.scriptContent ?? '',
+            workDir: row.workDir ?? '',
+            disabled: !!row.disabled,
+            descText: row.descText ?? '',
+        });
+        setViewOnly(true);
         setVisible(true);
     };
 
@@ -179,13 +240,13 @@ export default function DevScripts() {
                         {list.map((row) => (
                             <div
                                 key={row.id}
-                                className="bg-white flex flex-col border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-cardHover transition"
-
+                                className="relative bg-white flex flex-col border border-gray-200 rounded-2xl p-5 shadow-sm hover:shadow-cardHover transition"
+                                onDoubleClick={() => openView(row)}
                             >
                                 {/* 标题 + 类型 */}
                                 <div className="flex items-center justify-between mb-1">
                                     <div className="font-semibold">
-                                        #{row.id} {row.scriptName}
+                                        {row.scriptName}
                                     </div>
                                     <span
                                         className={`px-2 py-0.5 text-xs font-medium rounded-full ${
@@ -218,20 +279,34 @@ export default function DevScripts() {
                                 </div>
 
                                 {/* 内容预览 */}
-                                <div className="flex-1 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-mono text-gray-800">
+                                <div className="relative flex-1 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded-lg p-2 text-xs font-mono text-gray-800">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            copyScript(row.scriptContent, String(row.id ?? row.scriptName ?? ''));
+                                        }}
+                                        className="absolute top-2 right-2 px-2 py-1 rounded-md border border-gray-200 bg-white/90 text-[11px] text-gray-700 transition-all duration-150 hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95"
+                                    >
+                                        {copiedKey === String(row.id ?? row.scriptName ?? '') ? '已复制' : '复制'}
+                                    </button>
                                     {(row.scriptContent || '').slice(0, 200)}
                                     {row.scriptContent && row.scriptContent.length > 200 ? ' …' : ''}
                                 </div>
 
                                 {/* 操作 */}
-                                <div className="mt-3 flex items-center justify-between gap-2">
-                                    <button
-                                        onClick={() => remove(row)}
-                                        className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
-                                    >
-                                        删除
-                                    </button>
-                                    <div className="flex items-center gap-2">
+                                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                                    <div className="justify-self-start">
+                                        <button
+                                            onClick={() => remove(row)}
+                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
+                                        >
+                                            删除
+                                        </button>
+                                    </div>
+                                    <div className="justify-self-center text-sm font-semibold text-emerald-700">
+                                        使用 {usageMap[row.scriptName || ''] ?? 0}
+                                    </div>
+                                    <div className="justify-self-end flex items-center gap-2">
                                         <button
                                             onClick={() => openEdit(row)}
                                             className="px-3 py-1.5 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
@@ -274,7 +349,7 @@ export default function DevScripts() {
                                     value={form.scriptName}
                                     onChange={(v) => setForm({ ...form, scriptName: v })}
                                     placeholder="例如：restart-nginx"
-                                    disabled={isEdit}
+                                    disabled={isEdit || viewOnly}
                                 />
                             </div>
                             <div>
@@ -283,34 +358,36 @@ export default function DevScripts() {
                                     value={form.workDir || ''}
                                     onChange={(v) => setForm({ ...form, workDir: v })}
                                     placeholder="/ 或 /opt/app"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
                             {/* 脚本类型 */}
                             <div className="md:col-span-2">
-                                <LabeledSelect
-                                    label="脚本类型"
-                                    value={form.scriptType ?? ''}
-                                    onChange={(v) => setForm({ ...form, scriptType: v as 'SHELL' | 'SQL' })}
+                                    <LabeledSelect
+                                        label="脚本类型"
+                                        value={form.scriptType ?? ''}
+                                        onChange={(v) => setForm({ ...form, scriptType: v as 'SHELL' | 'SQL' })}
                                     options={[
                                         { value: 'SHELL', label: 'SHELL' },
                                         { value: 'SQL', label: 'SQL' },
                                     ]}
-                                    disabled={isEdit}
-                                    placeholder="请选择脚本类型"
-                                />
+                                        disabled={isEdit || viewOnly}
+                                        placeholder="请选择脚本类型"
+                                    />
                             </div>
 
                             <div className="md:col-span-2">
-                                <LabeledSelect
-                                    label="是否禁用"
-                                    value={form.disabled ? '1' : '0'}
-                                    onChange={(e) => setForm({ ...form, disabled: e.target.value === '1' })}
+                                    <LabeledSelect
+                                        label="是否禁用"
+                                        value={form.disabled ? '1' : '0'}
+                                        onChange={(e) => setForm({ ...form, disabled: e.target.value === '1' })}
                                     options={[
                                         { value: '0', label: '启用' },
                                         { value: '1', label: '禁用' },
                                     ]}
-                                />
+                                        disabled={viewOnly}
+                                    />
                             </div>
 
                             <div className="md:col-span-2">
@@ -319,6 +396,7 @@ export default function DevScripts() {
                                     value={form.descText || ''}
                                     onChange={(v) => setForm({ ...form, descText: v })}
                                     placeholder="简要说明用途"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -329,6 +407,7 @@ export default function DevScripts() {
                                     onChange={(v) => setForm({...form, scriptContent: v})}
                                     placeholder={`#!/bin/bash\nsystemctl restart nginx && systemctl status nginx --no-pager`}
                                     rows={14}
+                                    disabled={viewOnly}
                                 />
                             </div>
                         </div>
@@ -339,14 +418,16 @@ export default function DevScripts() {
                                 onClick={() => setVisible(false)}
                                 className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50"
                             >
-                                取消
+                                {viewOnly ? '关闭' : '取消'}
                             </button>
-                            <button
-                                onClick={save}
-                                className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
-                            >
-                                {isEdit ? '保存' : '创建'}
-                            </button>
+                            {!viewOnly && (
+                                <button
+                                    onClick={save}
+                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700"
+                                >
+                                    {isEdit ? '保存' : '创建'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -1,7 +1,7 @@
 // src/utils/api.ts
 // 中文注释：统一封装 fetch & 解包：code=200 返回 data(可为 null)；401 跳登录；5xx 弹 Toast
 import type {ApiResp} from '@/types/api';
-import {showGeekOverlay} from '@/components/toast';
+import {showGeekOverlay, showNoticeOverlay} from '@/components/toast';
 
 const jsonHeaders = {'Content-Type': 'application/json'};
 
@@ -9,31 +9,7 @@ const jsonHeaders = {'Content-Type': 'application/json'};
 function showSuccessMsg(msg?: string) {
     // 中文注释：无 msg 直接返回
     if (!msg) return;
-
-    // 中文注释：注入一次样式
-    const id = 'mini-toast-style';
-    if (!document.getElementById(id)) {
-        const style = document.createElement('style');
-        style.id = id;
-        style.textContent = `
-      .mini-toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);
-        background:rgba(0,0,0,.82);color:#fff;padding:8px 12px;border-radius:8px;
-        font-size:13px;z-index:99999;opacity:0;transition:opacity .2s,transform .2s}
-      .mini-toast-show{opacity:1;transform:translateX(-50%) translateY(4px)}
-    `;
-        document.head.appendChild(style);
-    }
-
-    const div = document.createElement('div');
-    div.className = 'mini-toast';
-    div.textContent = String(msg);
-    document.body.appendChild(div);
-
-    requestAnimationFrame(() => div.classList.add('mini-toast-show'));
-    setTimeout(() => {
-        div.classList.remove('mini-toast-show');
-        setTimeout(() => div.remove(), 200);
-    }, 2000);
+    showNoticeOverlay('操作成功', String(msg), 'success');
 }
 
 // 中文注释：请求是否写操作（GET 不弹）

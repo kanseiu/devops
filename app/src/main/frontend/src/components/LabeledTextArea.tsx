@@ -4,8 +4,9 @@ export default function LabeledTextArea(props: {
     onChange: (v: string) => void;
     placeholder?: string;
     rows?: number;
+    disabled?: boolean;
 }) {
-    const { label, value, onChange, placeholder, rows = 6 } = props;
+    const { label, value, onChange, placeholder, rows = 6, disabled } = props;
 
     return (
         <label className="block min-w-0">
@@ -16,6 +17,7 @@ export default function LabeledTextArea(props: {
                 placeholder={placeholder}
                 rows={rows}
                 className="ui-field resize-y"
+                disabled={disabled}
             />
         </label>
     );

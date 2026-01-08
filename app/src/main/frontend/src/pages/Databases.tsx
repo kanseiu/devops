@@ -37,11 +37,13 @@ const emptyForm: DatabaseItem = {
 export default function Databases() {
     // 列表与状态
     const [list, setList] = useState<DatabaseItem[]>([]);
+    const [usageMap, setUsageMap] = useState<Record<number, number>>({});
     const [loading, setLoading] = useState(false);
 
     // 弹窗与表单
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<DatabaseItem>(emptyForm);
+    const [viewOnly, setViewOnly] = useState(false);
     const isEdit = useMemo(() => form.id != null, [form.id]);
     const confirm = useConfirm();
 
@@ -49,8 +51,19 @@ export default function Databases() {
     const load = async () => {
         setLoading(true);
         try {
-            const data = await api.get<DatabaseItem[]>('/api/databases/list');
+            const [data, jobs] = await Promise.all([
+                api.get<DatabaseItem[]>('/api/databases/list'),
+                api.get<any[]>('/api/cron/jobs'),
+            ]);
             setList(Array.isArray(data) ? data : []);
+            const map: Record<number, number> = {};
+            (Array.isArray(jobs) ? jobs : []).forEach((job: any) => {
+                const id = Number(job.databaseId);
+                if (!Number.isNaN(id) && id > 0) {
+                    map[id] = (map[id] || 0) + 1;
+                }
+            });
+            setUsageMap(map);
         } finally {
             setLoading(false);
         }
@@ -63,6 +76,7 @@ export default function Databases() {
     // ================= 弹窗操作 =================
     const openCreate = () => {
         setForm({...emptyForm});
+        setViewOnly(false);
         setVisible(true);
     };
 
@@ -78,6 +92,23 @@ export default function Databases() {
             disabled: !!row.disabled,
             descText: row.descText ?? '',
         });
+        setViewOnly(false);
+        setVisible(true);
+    };
+
+    const openView = (row: DatabaseItem) => {
+        setForm({
+            id: row.id,
+            name: row.name ?? '',
+            dbType: row.dbType ?? 'mysql',
+            jdbcUrl: row.jdbcUrl ?? '',
+            username: row.username ?? '',
+            passwordEnc: row.passwordEnc ?? '',
+            testSql: row.testSql ?? '',
+            disabled: !!row.disabled,
+            descText: row.descText ?? '',
+        });
+        setViewOnly(true);
         setVisible(true);
     };
 
@@ -207,12 +238,13 @@ export default function Databases() {
                             {list.map((row) => (
                                 <div
                                     key={row.id}
-                                    className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition"
+                                    className="relative bg-white border border-gray-200 rounded-2xl p-4 shadow-sm hover:shadow-cardHover transition"
+                                    onDoubleClick={() => openView(row)}
                                 >
                                     {/* 头部：名称 + 类型徽标 */}
                                     <div className="flex items-center justify-between">
                                         <div className="font-semibold text-gray-800">
-                                            #{row.id} {row.name}
+                                            {row.name}
                                         </div>
                                         <span
                                             className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 text-gray-700"
@@ -239,14 +271,19 @@ export default function Databases() {
                                     </div>
 
                                     {/* 操作区：右对齐按钮 */}
-                                    <div className="mt-3 flex items-center justify-between gap-2">
-                                        <button
-                                            onClick={() => remove(row)}
-                                            className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
-                                        >
-                                            删除
-                                        </button>
-                                        <div className="flex items-center gap-2">
+                                    <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                                        <div className="justify-self-start">
+                                            <button
+                                                onClick={() => remove(row)}
+                                                className="px-3 py-1.5 rounded-lg text-white text-sm bg-rose-600 hover:bg-rose-700"
+                                            >
+                                                删除
+                                            </button>
+                                        </div>
+                                        <div className="justify-self-center text-sm font-semibold text-emerald-700">
+                                            使用 {usageMap[row.id || 0] ?? 0}
+                                        </div>
+                                        <div className="justify-self-end flex items-center gap-2">
                                             <button
                                                 onClick={() => test(row.id)}
                                                 className="px-3 py-1.5 rounded-lg border border-blue-500 bg-blue-500 text-white text-sm hover:brightness-95"
@@ -306,6 +343,7 @@ export default function Databases() {
                                         { value: 'oceanbase', label: 'OceanBase' },
                                         { value: 'h2', label: 'H2' },
                                     ]}
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -316,6 +354,7 @@ export default function Databases() {
                                     value={form.name}
                                     onChange={(v) => setForm({...form, name: v})}
                                     placeholder="例如：业务库-MySQL"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -326,6 +365,7 @@ export default function Databases() {
                                     value={form.jdbcUrl}
                                     onChange={(v) => setForm({...form, jdbcUrl: v})}
                                     placeholder="例如：jdbc:mysql://127.0.0.1:3306/dbname?useSSL=false"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -336,6 +376,7 @@ export default function Databases() {
                                     value={form.testSql || ''}
                                     onChange={(v) => setForm({...form, testSql: v})}
                                     placeholder="例如：SELECT 1"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -346,6 +387,7 @@ export default function Databases() {
                                     value={form.username}
                                     onChange={(v) => setForm({...form, username: v})}
                                     placeholder="root"
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -355,6 +397,7 @@ export default function Databases() {
                                     label="密码"
                                     value={form.passwordEnc}
                                     onChange={(v) => setForm({...form, passwordEnc: v})}
+                                    disabled={viewOnly}
                                 />
                             </div>
                         </div>
@@ -363,12 +406,14 @@ export default function Databases() {
                         <div className="mt-4 flex justify-end gap-2">
                             <button onClick={() => setVisible(false)}
                                     className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">
-                                取消
+                                {viewOnly ? '关闭' : '取消'}
                             </button>
-                            <button onClick={save}
-                                    className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">
-                                {isEdit ? '保存' : '创建'}
-                            </button>
+                            {!viewOnly && (
+                                <button onClick={save}
+                                        className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">
+                                    {isEdit ? '保存' : '创建'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </div>

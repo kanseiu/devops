@@ -5,6 +5,7 @@
 // - API：showGeekOverlay(title, content), hideGeekOverlay()
 
 let overlayRoot: HTMLDivElement | null = null;
+let autoCloseTimer: number | null = null;
 
 function ensureOverlayRoot() {
     if (!overlayRoot) {
@@ -20,7 +21,45 @@ function ensureOverlayRoot() {
     }
 }
 
-function buildPanel(title: string, content: string) {
+type OverlayTone = 'default' | 'success' | 'danger';
+
+type OverlayOptions = {
+    tone?: OverlayTone;
+    autoCloseMs?: number;
+    showCopy?: boolean;
+};
+
+function toneStyles(tone: OverlayTone) {
+    if (tone === 'success') {
+        return {
+            headerBg: '#ecfdf3',
+            headerBorder: '#bbf7d0',
+            title: '#166534',
+            buttonBorder: '#bbf7d0',
+            buttonText: '#166534',
+        };
+    }
+    if (tone === 'danger') {
+        return {
+            headerBg: '#fef2f2',
+            headerBorder: '#fecaca',
+            title: '#b91c1c',
+            buttonBorder: '#fecaca',
+            buttonText: '#b91c1c',
+        };
+    }
+    return {
+        headerBg: '#f8fafc',
+        headerBorder: '#e2e8f0',
+        title: '#334155',
+        buttonBorder: '#e2e8f0',
+        buttonText: '#0f172a',
+    };
+}
+
+function buildPanel(title: string, content: string, options?: OverlayOptions) {
+    const tone = options?.tone ?? 'default';
+    const palette = toneStyles(tone);
     const panel = document.createElement('div');
     panel.style.cssText = `
     width: min(1000px, 92vw);
@@ -40,34 +79,37 @@ function buildPanel(title: string, content: string) {
     const header = document.createElement('div');
     header.style.cssText = `
     display:flex; align-items:center; justify-content:space-between;
-    gap: 12px; padding: 12px 16px; background:#f8fafc; border-bottom:1px solid #e2e8f0;
+    gap: 12px; padding: 12px 16px; background:${palette.headerBg}; border-bottom:1px solid ${palette.headerBorder};
   `;
 
     const titleEl = document.createElement('div');
-    titleEl.style.cssText = `font-weight:600; font-size:14px; color:#334155; letter-spacing: .2px;`;
+    titleEl.style.cssText = `font-weight:600; font-size:14px; color:${palette.title}; letter-spacing: .2px;`;
     titleEl.textContent = title || 'Error';
 
     const right = document.createElement('div');
     right.style.cssText = `display:flex; align-items:center; gap:8px;`;
 
     // 复制按钮（可选）
+    const showCopy = options?.showCopy !== false;
     const copyBtn = document.createElement('button');
-    copyBtn.textContent = '复制';
-    copyBtn.title = '复制错误信息';
-    copyBtn.style.cssText = `
-    border:1px solid #e2e8f0; background:#ffffff; color:#0f172a;
-    padding:6px 12px; border-radius:999px; cursor:pointer; font-size:12px;
-  `;
-    copyBtn.onclick = async () => {
-        try {
-            await navigator.clipboard.writeText(content);
-            copyBtn.textContent = '已复制';
-            setTimeout(() => (copyBtn.textContent = '复制'), 1200);
-        } catch {
-            copyBtn.textContent = '失败';
-            setTimeout(() => (copyBtn.textContent = '复制'), 1200);
-        }
-    };
+    if (showCopy) {
+        copyBtn.textContent = '复制';
+        copyBtn.title = '复制错误信息';
+        copyBtn.style.cssText = `
+        border:1px solid ${palette.buttonBorder}; background:#ffffff; color:${palette.buttonText};
+        padding:6px 12px; border-radius:999px; cursor:pointer; font-size:12px;
+      `;
+        copyBtn.onclick = async () => {
+            try {
+                await navigator.clipboard.writeText(content);
+                copyBtn.textContent = '已复制';
+                setTimeout(() => (copyBtn.textContent = '复制'), 1200);
+            } catch {
+                copyBtn.textContent = '失败';
+                setTimeout(() => (copyBtn.textContent = '复制'), 1200);
+            }
+        };
+    }
 
     // 关闭按钮
     const closeBtn = document.createElement('button');
@@ -75,12 +117,12 @@ function buildPanel(title: string, content: string) {
     closeBtn.title = '关闭 (Esc)';
     closeBtn.style.cssText = `
     width:28px; height:28px; line-height:26px; text-align:center;
-    border:1px solid #e2e8f0; background:#ffffff; color:#334155;
+    border:1px solid ${palette.buttonBorder}; background:#ffffff; color:${palette.buttonText};
     border-radius:999px; cursor:pointer; font-size:16px;
   `;
     closeBtn.onclick = hideGeekOverlay;
 
-    right.appendChild(copyBtn);
+    if (showCopy) right.appendChild(copyBtn);
     right.appendChild(closeBtn);
 
     header.appendChild(titleEl);
@@ -101,10 +143,22 @@ function buildPanel(title: string, content: string) {
 }
 
 export function showGeekOverlay(title: string, content: string) {
+    showOverlay(title, content, { tone: 'danger', showCopy: true });
+}
+
+export function showNoticeOverlay(title: string, content: string, tone: OverlayTone = 'success') {
+    showOverlay(title, content, { tone, showCopy: true });
+}
+
+function showOverlay(title: string, content: string, options?: OverlayOptions) {
     ensureOverlayRoot();
 
     // 清空旧内容
     overlayRoot!.innerHTML = '';
+    if (autoCloseTimer) {
+        window.clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
+    }
 
     // 背景点击也可关闭（可按需改成不关闭）
     overlayRoot!.onclick = (e) => {
@@ -117,12 +171,21 @@ export function showGeekOverlay(title: string, content: string) {
     };
     document.addEventListener('keydown', escHandler, { once: true });
 
-    overlayRoot!.appendChild(buildPanel(title, content));
+    overlayRoot!.appendChild(buildPanel(title, content, options));
     overlayRoot!.style.display = 'flex';
+    if (options?.autoCloseMs) {
+        autoCloseTimer = window.setTimeout(() => {
+            hideGeekOverlay();
+        }, options.autoCloseMs);
+    }
 }
 
 export function hideGeekOverlay() {
     if (!overlayRoot) return;
     overlayRoot.style.display = 'none';
     overlayRoot.innerHTML = '';
+    if (autoCloseTimer) {
+        window.clearTimeout(autoCloseTimer);
+        autoCloseTimer = null;
+    }
 }

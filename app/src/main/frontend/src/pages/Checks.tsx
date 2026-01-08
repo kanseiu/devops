@@ -12,9 +12,34 @@ import AppFooter from '@/components/AppFooter';
 import {useConfirm} from '@/components/ConfirmDialog';
 
 // ======== 类型定义 ========
-type Server = { id: number; name?: string; host?: string; port?: number; };
-type Database = { id: number; name: string; jdbcUrl?: string }; // ★ 新增：数据库最小字段
-type DevScript = { id: number; scriptName: string; scriptType?: 'SHELL' | 'SQL' }; // ★ 增加 scriptType
+type Server = {
+    id: number;
+    name?: string;
+    host?: string;
+    port?: number;
+    username?: string;
+    authType?: 'password' | 'privateKey';
+    commandAllowList?: string;
+    defaultTestCmd?: string;
+};
+type Database = {
+    id: number;
+    name: string;
+    dbType?: string;
+    jdbcUrl?: string;
+    username?: string;
+    testSql?: string;
+    descText?: string;
+}; // ★ 新增：数据库最小字段
+type DevScript = {
+    id: number;
+    scriptName: string;
+    scriptType?: 'SHELL' | 'SQL';
+    scriptContent?: string;
+    workDir?: string;
+    descText?: string;
+    updateTime?: string | number;
+}; // ★ 增加 scriptType
 
 type JobItem = {
     id?: number;
@@ -84,6 +109,7 @@ export default function HutoolCronJobs() {
     // 弹窗与表单
     const [visible, setVisible] = useState(false);
     const [form, setForm] = useState<JobItem>(emptyForm);
+    const [viewOnly, setViewOnly] = useState(false);
     const isEdit = useMemo(() => form.id != null, [form.id]);
 
     // 日志弹窗状态
@@ -95,6 +121,11 @@ export default function HutoolCronJobs() {
     const confirm = useConfirm();
     const [cronPreview, setCronPreview] = useState<string[]>([]);
     const [cronPreviewError, setCronPreviewError] = useState<string | null>(null);
+    const [detailVisible, setDetailVisible] = useState(false);
+    const [detailTitle, setDetailTitle] = useState('');
+    const [detailKind, setDetailKind] = useState<'script' | 'database' | 'server' | null>(null);
+    const [detailPayload, setDetailPayload] = useState<any>(null);
+    const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     // ========= 工具：时间格式化 =========
     const fmtTime = (s?: string | number) => {
@@ -175,6 +206,7 @@ export default function HutoolCronJobs() {
     // ========= 弹窗 =========
     const openCreate = () => {
         setForm({ ...emptyForm });
+        setViewOnly(false);
         setVisible(true);
     };
 
@@ -192,7 +224,67 @@ export default function HutoolCronJobs() {
             disabled: row.disabled === true,
             descText: row.descText ?? '',
         });
+        setViewOnly(false);
         setVisible(true);
+    };
+
+    const openView = (row: JobItem) => {
+        setForm({
+            id: row.id,
+            jobName: row.jobName ?? '',
+            cronExpr: row.cronExpr ?? '',
+            jobType: row.jobType,
+            scriptName: row.scriptName ?? '',
+            serverId: row.serverId,
+            databaseId: row.databaseId,
+            argsText: row.argsText ?? '',
+            timeoutSec: row.timeoutSec ?? 300,
+            disabled: row.disabled === true,
+            descText: row.descText ?? '',
+        });
+        setViewOnly(true);
+        setVisible(true);
+    };
+    const closeModal = () => {
+        setVisible(false);
+        setViewOnly(false);
+    };
+    const openDetail = (title: string, kind: 'script' | 'database' | 'server', payload: any) => {
+        setDetailTitle(title);
+        setDetailKind(kind);
+        setDetailPayload(payload);
+        setDetailVisible(true);
+    };
+    const copyText = async (content?: string, key?: string) => {
+        const text = content ?? '';
+        try {
+            await navigator.clipboard.writeText(text);
+            if (key) {
+                setCopiedKey(key);
+                setTimeout(() => {
+                    setCopiedKey(prev => (prev === key ? null : prev));
+                }, 1200);
+            }
+        } catch {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            textarea.style.position = 'fixed';
+            textarea.style.left = '-9999px';
+            document.body.appendChild(textarea);
+            textarea.focus();
+            textarea.select();
+            const ok = document.execCommand('copy');
+            document.body.removeChild(textarea);
+            if (ok && key) {
+                setCopiedKey(key);
+                setTimeout(() => {
+                    setCopiedKey(prev => (prev === key ? null : prev));
+                }, 1200);
+            }
+            if (!ok) {
+                alert('复制失败，请手动复制');
+            }
+        }
     };
 
     // 当切换 jobType 时，重置依赖字段，避免脏数据
@@ -202,6 +294,27 @@ export default function HutoolCronJobs() {
             return prev;
         });
     }, [form.jobType]);
+    useEffect(() => {
+        if (!visible && !detailVisible && !logVisible) return;
+        const handler = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.preventDefault();
+                if (detailVisible) {
+                    setDetailVisible(false);
+                    return;
+                }
+                if (logVisible) {
+                    setLogVisible(false);
+                    return;
+                }
+                if (visible) {
+                    closeModal();
+                }
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [detailVisible, logVisible, visible]);
 
     // ========= 保存与校验 =========
     const validate = (v: JobItem): string | null => {
@@ -217,6 +330,19 @@ export default function HutoolCronJobs() {
         if (v.timeoutSec != null && (v.timeoutSec <= 0 || v.timeoutSec > 86400)) return '超时需在 1~86400 秒';
         return null;
     };
+
+    const currentScript = useMemo(() => {
+        if (!form.scriptName) return null;
+        return scripts.find(s => s.scriptName === form.scriptName) || null;
+    }, [scripts, form.scriptName]);
+    const currentServer = useMemo(() => {
+        if (!form.serverId) return null;
+        return servers.find(s => s.id === form.serverId) || null;
+    }, [servers, form.serverId]);
+    const currentDatabase = useMemo(() => {
+        if (!form.databaseId) return null;
+        return databases.find(d => d.id === form.databaseId) || null;
+    }, [databases, form.databaseId]);
 
     const save = async () => {
         const err = validate(form);
@@ -306,21 +432,6 @@ export default function HutoolCronJobs() {
     };
     const reloadJobs = async () => { await api.get('/api/cron/reload'); await loadAll(); };
 
-    // 弹窗 ESC 关闭
-    useEffect(() => {
-        if (!visible) return;
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setVisible(false); } };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [visible]);
-
-    useEffect(() => {
-        if (!logVisible) return;
-        const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') { e.preventDefault(); setLogVisible(false); } };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [logVisible]);
-
     // Cron 预览（仅在弹窗打开时生效）
     useEffect(() => {
         if (!visible) {
@@ -405,6 +516,7 @@ export default function HutoolCronJobs() {
                         {list.map((row) => (
                             <div
                                 key={row.id}
+                                onDoubleClick={() => openView(row)}
                                 className={`border rounded-2xl p-4 shadow-sm transition ${
                                     row.disabled
                                         ? 'bg-gray-200 border-gray-300 text-gray-500 opacity-70 grayscale'
@@ -573,8 +685,8 @@ export default function HutoolCronJobs() {
                     <div className="w-[760px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
                         {/* 标题 */}
                         <div className="flex items-center justify-between mb-3">
-                            <div className="font-semibold">{isEdit ? '编辑' : '新建'}</div>
-                            <button onClick={() => setVisible(false)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">×</button>
+                            <div className="font-semibold">{viewOnly ? '详情' : isEdit ? '编辑' : '新建'}</div>
+                            <button onClick={closeModal} className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">×</button>
                         </div>
 
                         {/* 表单 */}
@@ -587,7 +699,7 @@ export default function HutoolCronJobs() {
                                     value={form.jobName}
                                     onChange={(v) => setForm({ ...form, jobName: v })}
                                     placeholder="例如：check-backup-daily"
-                                    disabled={isEdit} // ★ 编辑时不可改
+                                    disabled={viewOnly || isEdit} // ★ 编辑时不可改
                                 />
                             </div>
                             <div>
@@ -596,6 +708,7 @@ export default function HutoolCronJobs() {
                                     value={form.cronExpr}
                                     onChange={(v) => setForm({ ...form, cronExpr: v })}
                                     placeholder="0 0 15 * * ?（每天 15:00）"
+                                    disabled={viewOnly}
                                 />
                                 <div className="text-xs text-gray-500 mt-1">
                                     例：每 5 分钟 <code className="px-1 border rounded">0 */5 * * * ?</code>；每天 02:30 <code className="px-1 border rounded">0 30 2 * * ?</code>
@@ -622,7 +735,7 @@ export default function HutoolCronJobs() {
                                         { value: 'SQL', label: 'SQL' },
                                     ]}
                                     placeholder="请选择任务类型（SHELL / SQL）"
-                                    disabled={isEdit} // ★ 编辑时不可改
+                                    disabled={viewOnly || isEdit} // ★ 编辑时不可改
                                 />
                             </div>
 
@@ -632,7 +745,7 @@ export default function HutoolCronJobs() {
                                 <select
                                     value={form.scriptName}
                                     onChange={(e) => setForm({ ...form, scriptName: e.target.value })}
-                                    disabled={!form.jobType || isEdit} // ★ 未选类型或编辑时禁用
+                                    disabled={viewOnly || !form.jobType || isEdit} // ★ 未选类型或编辑时禁用
                                     className="ui-field"
                                 >
                                     <option value="">{form.jobType ? '请选择脚本' : '请先选择任务类型'}</option>
@@ -640,6 +753,30 @@ export default function HutoolCronJobs() {
                                         <option key={s.id} value={s.scriptName}>{s.scriptName}</option>
                                     ))}
                                 </select>
+                                <div className="mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            if (!currentScript) return;
+                                            openDetail(
+                                                `脚本详情 · ${currentScript.scriptName}`,
+                                                'script',
+                                                {
+                                                    scriptName: currentScript.scriptName,
+                                                    scriptType: currentScript.scriptType,
+                                                    workDir: currentScript.workDir,
+                                                    updateTime: currentScript.updateTime,
+                                                    descText: currentScript.descText,
+                                                    scriptContent: currentScript.scriptContent,
+                                                }
+                                            );
+                                        }}
+                                        disabled={!currentScript}
+                                        className="text-xs text-blue-700 hover:text-blue-800 disabled:text-gray-400"
+                                    >
+                                        查看脚本详情
+                                    </button>
+                                </div>
                             </div>
 
                             {/* 第三行右侧：目标（服务器或数据库） */}
@@ -650,7 +787,7 @@ export default function HutoolCronJobs() {
                                         <select
                                             value={form.databaseId || 0}
                                             onChange={(e) => setForm({ ...form, databaseId: Number(e.target.value) || undefined })}
-                                            disabled={!form.jobType || form.jobType !== 'SQL' || isEdit}
+                                            disabled={viewOnly || !form.jobType || form.jobType !== 'SQL' || isEdit}
                                             className="ui-field"
                                         >
                                             <option value={0}>请选择数据库</option>
@@ -658,6 +795,30 @@ export default function HutoolCronJobs() {
                                                 <option key={d.id} value={d.id}>#{d.id} {d.name}</option>
                                             ))}
                                         </select>
+                                        <div className="mt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!currentDatabase) return;
+                                                    openDetail(
+                                                        `数据库详情 · ${currentDatabase.name}`,
+                                                        'database',
+                                                        {
+                                                            name: currentDatabase.name,
+                                                            dbType: currentDatabase.dbType,
+                                                            username: currentDatabase.username,
+                                                            jdbcUrl: currentDatabase.jdbcUrl,
+                                                            testSql: currentDatabase.testSql,
+                                                            descText: currentDatabase.descText,
+                                                        }
+                                                    );
+                                                }}
+                                        disabled={!currentDatabase}
+                                                className="text-xs text-blue-700 hover:text-blue-800 disabled:text-gray-400"
+                                            >
+                                                查看数据库详情
+                                            </button>
+                                        </div>
                                     </>
                                 ) : (
                                     <>
@@ -665,7 +826,7 @@ export default function HutoolCronJobs() {
                                         <select
                                             value={form.serverId || 0}
                                             onChange={(e) => setForm({ ...form, serverId: Number(e.target.value) || undefined })}
-                                            disabled={!form.jobType || form.jobType !== 'SHELL' || isEdit}
+                                            disabled={viewOnly || !form.jobType || form.jobType !== 'SHELL' || isEdit}
                                             className="ui-field"
                                         >
                                             <option value={0}>请选择服务器</option>
@@ -673,6 +834,31 @@ export default function HutoolCronJobs() {
                                                 <option key={s.id} value={s.id}>#{s.id} {s.name ?? `${s.host}:${s.port}`}</option>
                                             ))}
                                         </select>
+                                        <div className="mt-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    if (!currentServer) return;
+                                                    openDetail(
+                                                        `服务器详情 · ${currentServer.name || currentServer.host || ''}`,
+                                                        'server',
+                                                        {
+                                                            name: currentServer.name,
+                                                            host: currentServer.host,
+                                                            port: currentServer.port,
+                                                            username: currentServer.username,
+                                                            authType: currentServer.authType,
+                                                            commandAllowList: currentServer.commandAllowList,
+                                                            defaultTestCmd: currentServer.defaultTestCmd,
+                                                        }
+                                                    );
+                                                }}
+                                                disabled={!currentServer}
+                                                className="text-xs text-blue-700 hover:text-blue-800 disabled:text-gray-400"
+                                            >
+                                                查看服务器详情
+                                            </button>
+                                        </div>
                                     </>
                                 )}
                             </div>
@@ -684,6 +870,7 @@ export default function HutoolCronJobs() {
                                     value={form.argsText || ''}
                                     onChange={(v) => setForm({ ...form, argsText: v })}
                                     placeholder={form.jobType === 'SQL' ? '例如：--schema public' : '/home/admin/backup-job/backup-persist'}
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -693,6 +880,7 @@ export default function HutoolCronJobs() {
                                     type="number"
                                     value={form.timeoutSec ?? 300}
                                     onChange={(v) => setForm({ ...form, timeoutSec: Number(v) || 300 })}
+                                    disabled={viewOnly}
                                 />
                             </div>
 
@@ -701,6 +889,7 @@ export default function HutoolCronJobs() {
                                 <select
                                     value={form.disabled ? '1' : '0'}
                                     onChange={(e) => setForm({ ...form, disabled: e.target.value === '1' })}
+                                    disabled={viewOnly}
                                     className="ui-field"
                                 >
                                     <option value="0">启用</option>
@@ -715,6 +904,7 @@ export default function HutoolCronJobs() {
                                     onChange={(v) => setForm({ ...form, descText: v })}
                                     rows={3}
                                     placeholder="例如：每天 15:00 检查最新备份是否生成；失败会报警"
+                                    disabled={viewOnly}
                                 />
                             </div>
                         </div>
@@ -724,12 +914,14 @@ export default function HutoolCronJobs() {
                         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <CronCheats times={cronPreview} error={cronPreviewError}/>
                             <div className="flex gap-2 justify-end">
-                                <button onClick={() => setVisible(false)}
-                                        className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">取消</button>
-                                <button onClick={save}
-                                        className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">
-                                    {isEdit ? '保存' : '创建'}
-                                </button>
+                                <button onClick={closeModal}
+                                        className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">{viewOnly ? '关闭' : '取消'}</button>
+                                {!viewOnly && (
+                                    <button onClick={save}
+                                            className="px-3.5 py-2 rounded-lg text-white text-sm bg-blue-600 hover:bg-blue-700">
+                                        {isEdit ? '保存' : '创建'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -745,6 +937,76 @@ export default function HutoolCronJobs() {
                         // loadAll();
                     }}
                 />
+            )}
+
+            {detailVisible && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm">
+                    <div className="w-[760px] max-w-[94vw] bg-white border border-gray-200 rounded-2xl shadow-card p-4 modal-panel modal-shell">
+                        <div className="flex items-center justify-between mb-3">
+                            <div className="font-semibold">{detailTitle}</div>
+                            <button onClick={() => setDetailVisible(false)} className="w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50">×</button>
+                        </div>
+                        <div className="modal-body flex-1">
+                            {detailKind === 'script' && detailPayload && (
+                                <div className="space-y-3">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                                        <div><span className="text-gray-500">类型：</span>{detailPayload.scriptType || '—'}</div>
+                                        <div><span className="text-gray-500">工作目录：</span>{detailPayload.workDir || '—'}</div>
+                                        <div><span className="text-gray-500">更新时间：</span>{fmtTime(detailPayload.updateTime)}</div>
+                                        <div><span className="text-gray-500">描述：</span>{detailPayload.descText || '—'}</div>
+                                    </div>
+                                    <div>
+                                        <div className="text-xs text-gray-500 mb-1">脚本内容</div>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => copyText(detailPayload.scriptContent, 'detail-script')}
+                                                disabled={!detailPayload.scriptContent}
+                                                className="absolute top-2 right-2 px-2 py-1 rounded-md border border-gray-200 bg-white/90 text-[11px] text-gray-700 transition-all duration-150 hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95 disabled:text-gray-400 disabled:hover:bg-white"
+                                            >
+                                                {copiedKey === 'detail-script' ? '已复制' : '复制'}
+                                            </button>
+                                            <pre className="whitespace-pre-wrap text-xs bg-gray-50 border border-gray-200 rounded-lg p-3 max-h-[50vh] overflow-auto">{detailPayload.scriptContent || ''}</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            {detailKind === 'database' && detailPayload && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                                    <div><span className="text-gray-500">类型：</span>{detailPayload.dbType || '—'}</div>
+                                    <div><span className="text-gray-500">用户：</span>{detailPayload.username || '—'}</div>
+                                    <div className="sm:col-span-2"><span className="text-gray-500">JDBC：</span>{detailPayload.jdbcUrl || '—'}</div>
+                                    <div className="sm:col-span-2">
+                                        <div className="flex items-center justify-between text-gray-500 mb-1">
+                                            <span>测试 SQL：</span>
+                                            <button
+                                                onClick={() => copyText(detailPayload.testSql, 'detail-sql')}
+                                                disabled={!detailPayload.testSql}
+                                                className="px-2 py-1 rounded-md border border-gray-200 bg-white/90 text-[11px] text-gray-700 transition-all duration-150 hover:bg-blue-600 hover:text-white hover:border-blue-600 active:scale-95 disabled:text-gray-400 disabled:hover:bg-white"
+                                            >
+                                                {copiedKey === 'detail-sql' ? '已复制' : '复制'}
+                                            </button>
+                                        </div>
+                                        <div className="whitespace-pre-wrap text-xs bg-gray-50 border border-gray-200 rounded-lg p-2">{detailPayload.testSql || '—'}</div>
+                                    </div>
+                                    <div className="sm:col-span-2"><span className="text-gray-500">描述：</span>{detailPayload.descText || '—'}</div>
+                                </div>
+                            )}
+                            {detailKind === 'server' && detailPayload && (
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
+                                    <div><span className="text-gray-500">主机：</span>{detailPayload.host || '—'}</div>
+                                    <div><span className="text-gray-500">端口：</span>{detailPayload.port ?? '—'}</div>
+                                    <div><span className="text-gray-500">用户：</span>{detailPayload.username || '—'}</div>
+                                    <div><span className="text-gray-500">鉴权：</span>{detailPayload.authType || '—'}</div>
+                                    <div className="sm:col-span-2"><span className="text-gray-500">命令白名单：</span>{detailPayload.commandAllowList || '—'}</div>
+                                    <div className="sm:col-span-2"><span className="text-gray-500">默认测试命令：</span>{detailPayload.defaultTestCmd || '—'}</div>
+                                </div>
+                            )}
+                        </div>
+                        <div className="mt-4 text-right">
+                            <button onClick={() => setDetailVisible(false)} className="px-3.5 py-2 rounded-lg border text-sm bg-white border-gray-200 hover:bg-gray-50">关闭</button>
+                        </div>
+                    </div>
+                </div>
             )}
 
         </div>
