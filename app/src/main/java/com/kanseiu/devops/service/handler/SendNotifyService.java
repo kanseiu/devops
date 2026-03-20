@@ -107,7 +107,8 @@ public class SendNotifyService {
         // 记录日志
         Long notifyLogId = devCronJobNotifyLogService.start(devCronJobLog, devCronJobNotify);
         // 组装发送NTFY的参数
-        SendNtfyRequest request = new SendNtfyRequest("devops-alert", devCronJobNotify.getNotifyTypeContent(), devCronJobLog.getJobName(), devCronJobLog.getErrorText());
+        String errorText = Objects.isNull(devCronJobLog.getErrorText()) ? devCronJobLog.getJobName() : devCronJobLog.getErrorText();
+        SendNtfyRequest request = new SendNtfyRequest("devops-alert", devCronJobNotify.getNotifyTypeContent(), devCronJobLog.getJobName(), errorText);
         request.setBusinessId(notifyLogId);
         // 发送
         sendNtfy.text(request);
